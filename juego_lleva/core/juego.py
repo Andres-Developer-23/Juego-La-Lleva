@@ -6,6 +6,7 @@ import pygame
 from models.jugador_humano import JugadorHumano
 from servicios.colision import ColisionService
 from servicios.puntaje import PuntajeService
+from servicios.ranking import RankingService
 from ui.interfaz import Interfaz
 
 from core.config import Config
@@ -32,6 +33,7 @@ class Juego:
         self.interfaz = Interfaz()
         self.puntaje_service = PuntajeService()
         self.servicio_colision = ColisionService()
+        self.ranking_service = RankingService(config.RANKING_PATH)
         self.gestor_modos = GestorModos()
         self.jugadores = []
         self.jugadores_views = []
@@ -99,6 +101,8 @@ class Juego:
                 self._pantalla_countdown(delta_tiempo)
             elif self.estado == "explosion":
                 self._pantalla_explosion(delta_tiempo)
+            elif self.estado == "ranking":
+                self._pantalla_ranking()
 
     def _menu_principal(self):
         """Maneja la pantalla del menú principal."""
@@ -110,6 +114,8 @@ class Juego:
             self.estado = "nombres"
         elif accion == "ayuda":
             self.estado = "ayuda"
+        elif accion == "ranking":
+            self.estado = "ranking"
         elif accion == "salir":
             pygame.quit()
             sys.exit()
@@ -327,6 +333,10 @@ class Juego:
         else:
             ganador = self.puntaje_service.obtener_ganador()
 
+        if not hasattr(self, '_ranking_registrado'):
+            self._registrar_en_ranking(ganador)
+            self._ranking_registrado = True
+
         accion = self.interfaz.obtener_accion_fin_ronda(self.mouse_pos, self.click_realizado)
 
         if accion == "revancha":
@@ -334,9 +344,11 @@ class Juego:
             self.estado = "countdown"
             self.countdown_valor = 3
             self.countdown_timer = 0
+            self._ranking_registrado = False
             return
         elif accion == "menu":
             self.estado = "menu"
+            self._ranking_registrado = False
             return
 
         for evento in self.eventos_pendientes:
@@ -345,15 +357,48 @@ class Juego:
                 self.estado = "countdown"
                 self.countdown_valor = 3
                 self.countdown_timer = 0
+                self._ranking_registrado = False
                 return
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
                 self.estado = "menu"
+                self._ranking_registrado = False
                 return
 
         self.pantalla.fill(self.config.COLOR_FONDO)
         self.interfaz.dibujar_fin_ronda(self.pantalla, ganador,
                                         self.puntaje_service.tiempos_lleva, self.mouse_pos,
                                         self.jugadores)
+        pygame.display.flip()
+
+    def _registrar_en_ranking(self, ganador_id):
+        """Registra la partida actual en el ranking.
+
+        Args:
+            ganador_id (int): ID del jugador ganador.
+        """
+        if ganador_id is None:
+            return
+        ganador_nombre = next((j.nombre for j in self.jugadores if j.id == ganador_id), f"J{ganador_id + 1}")
+        tiempo_ganador = self.puntaje_service.tiempos_lleva.get(ganador_id, 0)
+        jugadores_tiempos = {}
+        for j in self.jugadores:
+            jugadores_tiempos[j.nombre] = self.puntaje_service.tiempos_lleva.get(j.id, 0)
+        self.ranking_service.registrar_partida(ganador_nombre, tiempo_ganador, jugadores_tiempos)
+
+    def _pantalla_ranking(self):
+        """Maneja la pantalla de ranking."""
+        for evento in self.eventos_pendientes:
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+                self.estado = "menu"
+                return
+
+        accion = self.interfaz.obtener_accion_ranking(self.mouse_pos, self.click_realizado)
+        if accion == "volver":
+            self.estado = "menu"
+            return
+
+        entradas = self.ranking_service.obtener_top(10)
+        self.interfaz.dibujar_ranking(self.pantalla, entradas, self.mouse_pos)
         pygame.display.flip()
 
     def crear_jugador(self, x, y, id_jugador, teclas=None, nombre=None):

@@ -257,22 +257,23 @@ class Interfaz:
         texto_sub = self.fuente_subtitulo.render("Juego Tradicional Colombiano", True, self.config.COLOR_PLATA)
         pantalla.blit(texto_sub, (self.config.ANCHO_PANTALLA // 2 - texto_sub.get_width() // 2, 195))
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 190, 260, 380, 250, 160)
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 190, 260, 380, 325, 160)
 
         botones = [
             ("Jugar", 280),
             ("Como Jugar", 355),
-            ("Salir", 430)
+            ("Ranking", 430),
+            ("Salir", 505)
         ]
 
         for texto_boton, y in botones:
             hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 50)
             self.dibujar_boton(pantalla, texto_boton, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 50, hover)
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 170, 540, 340, 70, 130)
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 170, 615, 340, 70, 130)
         controles = "J1: WASD   |   J2: Flechas"
         texto_ctrl = self.fuente_pequena.render(controles, True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_ctrl, (self.config.ANCHO_PANTALLA // 2 - texto_ctrl.get_width() // 2, 565))
+        pantalla.blit(texto_ctrl, (self.config.ANCHO_PANTALLA // 2 - texto_ctrl.get_width() // 2, 640))
 
     def dibujar_pantalla_nombres(self, pantalla, nombres, nombre_activo, mouse_pos=None):
         """Dibuja la pantalla de ingreso de nombres.
@@ -338,7 +339,8 @@ class Interfaz:
         botones = [
             (self.config.ANCHO_PANTALLA // 2 - 140, 280, 280, 50, "jugar"),
             (self.config.ANCHO_PANTALLA // 2 - 140, 355, 280, 50, "ayuda"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 430, 280, 50, "salir")
+            (self.config.ANCHO_PANTALLA // 2 - 140, 430, 280, 50, "ranking"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 505, 280, 50, "salir")
         ]
         for x, y, ancho, alto, accion in botones:
             if self._dentro_boton(mouse_pos, x, y, ancho, alto):
@@ -470,4 +472,86 @@ class Interfaz:
             return "revancha"
         if self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 + 20, 510, 190, 50):
             return "menu"
+        return None
+
+    def dibujar_ranking(self, pantalla, entradas, mouse_pos=None):
+        """Dibuja la pantalla de ranking con las mejores partidas.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            entradas (list): Lista de entradas del ranking ordenadas por tiempo.
+            mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+        """
+        pantalla.fill(self.config.COLOR_FONDO)
+        self.dibujar_particulas_menu(pantalla)
+
+        titulo = self.fuente_grande.render("Ranking", True, self.config.COLOR_DORADO)
+        pantalla.blit(titulo, (self.config.ANCHO_PANTALLA // 2 - titulo.get_width() // 2, 40))
+
+        subtitulo = self.fuente_subtitulo.render("Mejores Tiempos", True, self.config.COLOR_PLATA)
+        pantalla.blit(subtitulo, (self.config.ANCHO_PANTALLA // 2 - subtitulo.get_width() // 2, 100))
+
+        panel_y = 150
+        panel_alto = 400
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 280, panel_y, 560, panel_alto, 180)
+
+        if not entradas:
+            texto_vacio = self.fuente_boton.render("No hay partidas registradas", True, self.config.COLOR_PLATA)
+            pantalla.blit(texto_vacio, (self.config.ANCHO_PANTALLA // 2 - texto_vacio.get_width() // 2, panel_y + 180))
+        else:
+            encabezado_y = panel_y + 15
+            col_pos_x = self.config.ANCHO_PANTALLA // 2 - 250
+            col_nom_x = self.config.ANCHO_PANTALLA // 2 - 180
+            col_tiempo_x = self.config.ANCHO_PANTALLA // 2 + 120
+
+            texto_pos_h = self.fuente_pequena.render("#", True, self.config.COLOR_DORADO)
+            texto_nom_h = self.fuente_pequena.render("Jugador", True, self.config.COLOR_DORADO)
+            texto_tiem_h = self.fuente_pequena.render("Tiempo", True, self.config.COLOR_DORADO)
+            pantalla.blit(texto_pos_h, (col_pos_x, encabezado_y))
+            pantalla.blit(texto_nom_h, (col_nom_x, encabezado_y))
+            pantalla.blit(texto_tiem_h, (col_tiempo_x, encabezado_y))
+
+            pygame.draw.line(pantalla, self.config.COLOR_BORDE,
+                           (col_pos_x, encabezado_y + 22),
+                           (col_tiempo_x + 100, encabezado_y + 22), 1)
+
+            for i, entrada in enumerate(entradas):
+                y = encabezado_y + 35 + i * 34
+                if y > panel_y + panel_alto - 40:
+                    break
+
+                if i == 0:
+                    color_pos = self.config.COLOR_DORADO
+                elif i == 1:
+                    color_pos = (192, 192, 192)
+                elif i == 2:
+                    color_pos = (205, 127, 50)
+                else:
+                    color_pos = (255, 255, 255)
+
+                texto_pos = self.fuente_boton.render(f"{i + 1}", True, color_pos)
+                texto_nom = self.fuente_boton.render(entrada["ganador"], True, (255, 255, 255))
+                texto_tiem = self.fuente_boton.render(f'{entrada["tiempo"]:.1f}s', True, color_pos)
+
+                pantalla.blit(texto_pos, (col_pos_x + 10, y))
+                pantalla.blit(texto_nom, (col_nom_x, y))
+                pantalla.blit(texto_tiem, (col_tiempo_x + 20, y))
+
+        hover_volver = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 100, 580, 200, 50)
+        self.dibujar_boton(pantalla, "Volver", self.config.ANCHO_PANTALLA // 2 - 100, 580, 200, 50, hover_volver)
+
+    def obtener_accion_ranking(self, mouse_pos, click):
+        """Obtiene la acción de la pantalla de ranking.
+
+        Args:
+            mouse_pos (tuple): Posición del mouse.
+            click (bool): True si se hizo click.
+
+        Returns:
+            str: Acción seleccionada ("volver") o None.
+        """
+        if not click:
+            return None
+        if self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 100, 580, 200, 50):
+            return "volver"
         return None

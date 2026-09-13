@@ -50,3 +50,4 @@ class Config:
     SPRITE_LLEVA = os.path.join(SPRITE_DIR, "lleva.png")
     FONDO = os.path.join(FONDOS_DIR, "campo.png")
     FONDO_MENU = os.path.join(FONDOS_DIR, "menu_bg.jpg")
+    RANKING_PATH = os.path.join(ASSETS_DIR, "ranking.json")
