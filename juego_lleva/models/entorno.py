@@ -1,0 +1,77 @@
+import math
+import random
+
+import pygame
+from core.config import Config
+
+from models.obstaculo import Obstaculo
+
+
+class Entorno:
+    def __init__(self):
+        self.config = Config()
+        self.particulas_fondo = []
+        self.obstaculos = []
+        self._generar_particulas_fondo()
+
+    def _generar_particulas_fondo(self):
+        for _ in range(30):
+            self.particulas_fondo.append({
+                'x': random.randint(0, self.config.ANCHO_PANTALLA),
+                'y': random.randint(0, self.config.ALTO_PANTALLA),
+                'tamaño': random.randint(1, 3),
+                'velocidad': random.uniform(0.2, 0.8),
+                'alpha': random.randint(30, 80),
+                'angulo': random.uniform(0, math.pi * 2)
+            })
+
+    def generar_obstaculos(self, jugadores):
+        self.obstaculos = []
+        cantidad = random.randint(self.config.CANTIDAD_OBSTACULOS_MIN,
+                                 self.config.CANTIDAD_OBSTACULOS_MAX)
+
+        intentos = 0
+        while len(self.obstaculos) < cantidad and intentos < 100:
+            intentos += 1
+            tipo = random.choice([Obstaculo.TIPO_CAJA, Obstaculo.TIPO_ZONA])
+            tamano = self.config.TAMAÑO_CAJA if tipo == Obstaculo.TIPO_CAJA else self.config.TAMAÑO_ZONA
+
+            x = random.randint(50, self.config.ANCHO_PANTALLA - tamano - 50)
+            y = random.randint(50, self.config.ALTO_PANTALLA - tamano - 50)
+
+            nuevo_rect = pygame.Rect(x, y, tamano, tamano)
+
+            solapado = False
+            for j in jugadores:
+                j_rect = j.obtener_rectangulo()
+                j_rect.inflate_ip(60, 60)
+                if nuevo_rect.colliderect(j_rect):
+                    solapado = True
+                    break
+
+            if not solapado:
+                for obs in self.obstaculos:
+                    obs_rect = obs.obtener_rectangulo()
+                    obs_rect.inflate_ip(20, 20)
+                    if nuevo_rect.colliderect(obs_rect):
+                        solapado = True
+                        break
+
+            if not solapado:
+                self.obstaculos.append(Obstaculo(x, y, tipo))
+
+    def actualizar(self, delta_tiempo):
+        for p in self.particulas_fondo:
+            p['x'] += math.cos(p['angulo']) * p['velocidad']
+            p['y'] += math.sin(p['angulo']) * p['velocidad']
+
+            if p['x'] < 0:
+                p['x'] = self.config.ANCHO_PANTALLA
+            elif p['x'] > self.config.ANCHO_PANTALLA:
+                p['x'] = 0
+            if p['y'] < 0:
+                p['y'] = self.config.ALTO_PANTALLA
+            elif p['y'] > self.config.ALTO_PANTALLA:
+                p['y'] = 0
+
+            p['angulo'] += random.uniform(-0.1, 0.1)

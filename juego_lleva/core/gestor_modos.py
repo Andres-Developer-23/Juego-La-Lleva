@@ -1,5 +1,5 @@
 from controles.controlador import Controlador
-from modelos.entorno import Entorno
+from models.entorno import Entorno
 
 
 class GestorModos:
@@ -9,6 +9,7 @@ class GestorModos:
 
     def iniciar_multijugador(self, juego, nombres=None):
         juego.jugadores.clear()
+        juego.jugadores_views.clear()
 
         positions = [(100, 100), (900, 100)]
 

@@ -2,13 +2,16 @@ import sys
 
 import pygame
 from controles.controlador import Controlador
-from modelos.jugador_humano import JugadorHumano
+from models.jugador_humano import JugadorHumano
 from servicios.colision import ColisionService
 from servicios.puntaje import PuntajeService
 from ui.interfaz import Interfaz
 
 from core.config import Config
 from core.gestor_modos import GestorModos
+
+from views.jugador_view import JugadorView
+from views.entorno_view import EntornoView
 
 
 class Juego:
@@ -24,6 +27,8 @@ class Juego:
         self.servicio_colision = ColisionService()
         self.gestor_modos = GestorModos()
         self.jugadores = []
+        self.jugadores_views = []
+        self.entorno_view = EntornoView()
         self.tiempo_ronda = 0
         self.estado = "menu"
         self.tiempo_inicio_lleva = 0
@@ -210,10 +215,11 @@ class Juego:
         else:
             self.pantalla.fill(self.config.COLOR_FONDO)
 
-        self.gestor_modos.entorno.renderizar(self.pantalla, self.tiempo_ronda)
+        self.entorno_view.renderizar(self.pantalla, self.gestor_modos.entorno, self.tiempo_ronda)
 
-        for jugador in self.jugadores:
-            jugador.renderizar(self.pantalla, delta_tiempo)
+        for i, jugador in enumerate(self.jugadores):
+            if i < len(self.jugadores_views):
+                self.jugadores_views[i].renderizar(self.pantalla, jugador, delta_tiempo)
 
         self.interfaz.dibujar_hud(self.pantalla, self.tiempo_ronda,
                                   self.puntaje_service.tiempos_lleva, self.jugadores)
@@ -232,10 +238,11 @@ class Juego:
         else:
             self.pantalla.fill(self.config.COLOR_FONDO)
 
-        self.gestor_modos.entorno.renderizar(self.pantalla, self.tiempo_ronda)
+        self.entorno_view.renderizar(self.pantalla, self.gestor_modos.entorno, self.tiempo_ronda)
 
-        for jugador in self.jugadores:
-            jugador.renderizar(self.pantalla, delta_tiempo)
+        for i, jugador in enumerate(self.jugadores):
+            if i < len(self.jugadores_views):
+                self.jugadores_views[i].renderizar(self.pantalla, jugador, delta_tiempo)
 
         self.interfaz.dibujar_hud(self.pantalla, self.tiempo_ronda,
                                   self.puntaje_service.tiempos_lleva, self.jugadores)
@@ -306,6 +313,9 @@ class Juego:
     def crear_jugador(self, x, y, id_jugador, teclas=None, nombre=None):
         jugador = JugadorHumano(x, y, id_jugador, teclas, nombre)
         self.jugadores.append(jugador)
+        jugador_view = JugadorView()
+        jugador_view.cargar_sprites(jugador)
+        self.jugadores_views.append(jugador_view)
         return jugador
 
     def set_lleva_inicial(self, id_jugador):

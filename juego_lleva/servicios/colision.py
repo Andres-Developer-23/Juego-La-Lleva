@@ -1,6 +1,6 @@
 import math
 from core.config import Config
-from modelos.obstaculo import Obstaculo
+from models.obstaculo import Obstaculo
 
 
 class ColisionService:
