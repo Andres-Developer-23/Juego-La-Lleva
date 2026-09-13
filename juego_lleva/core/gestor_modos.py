@@ -1,5 +1,7 @@
 """Gestor de modos de juego que administra la inicialización de partidas."""
 
+import random
+
 from controles.controlador import Controlador
 from models.entorno import Entorno
 
@@ -32,6 +34,6 @@ class GestorModos:
 
         self.entorno.generar_obstaculos(juego.jugadores)
 
-        juego.set_lleva_inicial(0)
+        juego.set_lleva_inicial(random.randint(0, len(juego.jugadores) - 1))
         juego.tiempo_ronda = 0
         juego.puntaje_service.reiniciar()
