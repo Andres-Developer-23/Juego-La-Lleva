@@ -358,34 +358,40 @@ class Interfaz:
         self.dibujar_particulas_menu(pantalla)
 
         titulo = self.fuente_grande.render("Como Jugar", True, self.config.COLOR_DORADO)
-        pantalla.blit(titulo, (self.config.ANCHO_PANTALLA // 2 - titulo.get_width() // 2, 40))
+        pantalla.blit(titulo, (self.config.ANCHO_PANTALLA // 2 - titulo.get_width() // 2, 20))
 
-        self.dibujar_panel(pantalla, 60, 100, 904, 540, 190)
+        self.dibujar_panel(pantalla, 60, 80, 904, 580, 190)
 
         secciones = [
-            ("Objetivo:", self.config.COLOR_DORADO, 130),
-            ("Ser el ultimo en ser tocado cuando expira el tiempo.", (255, 255, 255), 165),
-            ("", None, 195),
-            ("Reglas:", self.config.COLOR_DORADO, 210),
-            ("- Un jugador es 'La Lleva' (rojo) y debe tocar a otro.", (255, 255, 255), 245),
-            ("- Al tocar, el tocado pasa a ser 'La Lleva'.", (255, 255, 255), 277),
-            ("- Gana quien menos tiempo sea 'La Lleva'.", (255, 255, 255), 309),
-            ("", None, 340),
-            ("Controles:", self.config.COLOR_DORADO, 355),
-            ("Jugador 1: W (arriba), A (izq), S (abajo), D (der)", self.config.COLOR_JUGADOR_1, 390),
-            ("Jugador 2: Flechas del teclado", self.config.COLOR_JUGADOR_2, 422),
-            ("", None, 453),
-            ("Consejos:", self.config.COLOR_DORADO, 465),
-            ("- El que es 'La Lleva' se mueve un poco mas rapido.", (255, 255, 255), 500),
+            ("Objetivo:", self.config.COLOR_DORADO, 100),
+            ("Ser el ultimo en ser tocado cuando expira el tiempo (60s).", (255, 255, 255), 130),
+            ("", None, 155),
+            ("Reglas:", self.config.COLOR_DORADO, 165),
+            ("- La lleva inicial se elige al azar.", (255, 255, 255), 195),
+            ("- Al tocar, el tocado pasa a ser 'La Lleva'.", (255, 255, 255), 220),
+            ("- Gana quien menos tiempo sea 'La Lleva'.", (255, 255, 255), 245),
+            ("", None, 270),
+            ("Controles:", self.config.COLOR_DORADO, 280),
+            ("J1: W (arriba), A (izq), S (abajo), D (der)", self.config.COLOR_JUGADOR_1, 310),
+            ("J2: Flechas del teclado", self.config.COLOR_JUGADOR_2, 335),
+            ("ESC: Volver al menu", self.config.COLOR_PLATA, 360),
+            ("", None, 385),
+            ("Obstaculos:", self.config.COLOR_DORADO, 395),
+            ("- Cajas (marrones): rebote al chocar.", (255, 255, 255), 425),
+            ("- Zonas (azules): ralentizan el movimiento.", (255, 255, 255), 450),
+            ("", None, 475),
+            ("Ranking:", self.config.COLOR_DORADO, 485),
+            ("- Al finalizar una ronda, tu tiempo se registra.", (255, 255, 255), 515),
+            ("- Consulta los mejores tiempos desde el menu.", (255, 255, 255), 540),
         ]
 
         for texto, color, y in secciones:
             if texto and color:
-                render = self.fuente_boton.render(texto, True, color)
+                render = self.fuente_pequena.render(texto, True, color)
                 pantalla.blit(render, (100, y))
 
-        hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 100, 670, 200, 50)
-        self.dibujar_boton(pantalla, "Volver", self.config.ANCHO_PANTALLA // 2 - 100, 670, 200, 50, hover)
+        hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 100, 680, 200, 50)
+        self.dibujar_boton(pantalla, "Volver", self.config.ANCHO_PANTALLA // 2 - 100, 680, 200, 50, hover)
 
     def dibujar_countdown(self, pantalla, numero):
         """Dibuja el countdown antes de iniciar la partida.
