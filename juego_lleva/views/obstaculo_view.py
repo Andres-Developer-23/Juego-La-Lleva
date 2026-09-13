@@ -56,12 +56,7 @@ class ObstaculoView:
             obstaculo: Objeto obstáculo a renderizar.
             tiempo_animacion (float): Tiempo para animaciones.
         """
-        centro_x = obstaculo.x + obstaculo.ancho // 2
-        centro_y = obstaculo.y + obstaculo.alto // 2
-        radio = obstaculo.ancho // 2
-
         pulso = math.sin(tiempo_animacion * 2) * 0.1 + 0.9
-        radio_actual = int(radio * pulso)
 
         superficie = pygame.Surface((obstaculo.ancho, obstaculo.alto), pygame.SRCALPHA)
         pygame.draw.ellipse(superficie, (40, 120, 200, 50),

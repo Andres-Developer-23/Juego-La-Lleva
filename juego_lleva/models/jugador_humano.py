@@ -43,6 +43,7 @@ class JugadorHumano(Jugador):
             self.x += velocidad
 
         self._limitar_pantalla()
+        self.posicion_anterior = (self.x, self.y)
 
     def _limitar_pantalla(self):
         """Limita la posición del jugador a los bordes de la pantalla."""

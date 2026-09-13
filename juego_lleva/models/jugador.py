@@ -1,8 +1,5 @@
 """Modelo que representa a un jugador en el juego."""
 
-import math
-import random
-
 import pygame
 from core.config import Config
 from interfaces.movible import Movible

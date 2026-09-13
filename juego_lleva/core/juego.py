@@ -3,7 +3,6 @@
 import sys
 
 import pygame
-from controles.controlador import Controlador
 from models.jugador_humano import JugadorHumano
 from servicios.colision import ColisionService
 from servicios.puntaje import PuntajeService
@@ -30,7 +29,6 @@ class Juego:
             (config.ANCHO_PANTALLA, config.ALTO_PANTALLA))
         pygame.display.set_caption("La Lleva - Juego Tradicional Colombiano")
         self.reloj = pygame.time.Clock()
-        self.controlador = Controlador()
         self.interfaz = Interfaz()
         self.puntaje_service = PuntajeService()
         self.servicio_colision = ColisionService()
@@ -44,6 +42,7 @@ class Juego:
         self.mouse_pos = None
         self.click_realizado = False
         self.tiempo_anterior = 0
+        self.eventos_pendientes = []
         self.countdown_valor = 3
         self.countdown_timer = 0
         self.nombres = ["J1", "J2"]
