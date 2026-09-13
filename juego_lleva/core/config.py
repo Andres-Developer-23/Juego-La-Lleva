@@ -1,9 +1,13 @@
+"""Configuración central del juego con todas las constantes y parámetros."""
+
 import os
 
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class Config:
+    """Clase que contiene toda la configuración del juego."""
+
     ANCHO_PANTALLA = 1908
     ALTO_PANTALLA = 1080
     FPS = 60

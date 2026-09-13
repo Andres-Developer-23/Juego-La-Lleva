@@ -1,3 +1,5 @@
+"""Vista responsable del renderizado de jugadores en pantalla."""
+
 import math
 import random
 
@@ -6,7 +8,10 @@ from core.config import Config
 
 
 class JugadorView:
+    """Clase que maneja la presentación visual de un jugador."""
+
     def __init__(self):
+        """Inicializa la vista del jugador con configuración por defecto."""
         self.config = Config()
         self.tiempo_animacion = 0
         self.particulas_rastro = []
@@ -16,12 +21,25 @@ class JugadorView:
         self.particulas_explosion = []
 
     def cargar_sprites(self, jugador):
+        """Carga los sprites correspondientes al jugador.
+
+        Args:
+            jugador: Objeto jugador con id para determinar sprites.
+        """
         self.sprite_normal = self._cargar_sprite(
             self.config.SPRITE_J1 if jugador.id == 0 else self.config.SPRITE_J2
         )
         self.sprite_lleva = self._cargar_sprite(self.config.SPRITE_LLEVA)
 
     def _cargar_sprite(self, ruta):
+        """Carga un sprite desde una ruta de archivo.
+
+        Args:
+            ruta (str): Ruta al archivo de imagen.
+
+        Returns:
+            pygame.Surface: Sprite cargado o None si hay error.
+        """
         try:
             imagen = pygame.image.load(ruta).convert_alpha()
             return pygame.transform.scale(imagen, (self.config.TAMAÑO_JUGADOR, self.config.TAMAÑO_JUGADOR))
@@ -29,6 +47,13 @@ class JugadorView:
             return None
 
     def renderizar(self, pantalla, jugador, tiempo_delta=0):
+        """Renderiza el jugador en la pantalla.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            jugador: Objeto jugador a renderizar.
+            tiempo_delta (float): Tiempo transcurrido desde la última actualización.
+        """
         self.tiempo_animacion += tiempo_delta
         self.trail_timer += tiempo_delta
 
@@ -102,6 +127,11 @@ class JugadorView:
                              jugador.y - texto.get_height() - 4))
 
     def _actualizar_particulas(self, delta_tiempo):
+        """Actualiza el estado de las partículas de rastro.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
         nuevas_particulas = []
         for p in self.particulas_rastro:
             p['vida'] -= delta_tiempo * 2
@@ -113,6 +143,11 @@ class JugadorView:
         self.particulas_rastro = nuevas_particulas
 
     def _agregar_particula_rastro(self, jugador):
+        """Agrega una nueva partícula de rastro al jugador.
+
+        Args:
+            jugador: Objeto jugador para obtener posición y color.
+        """
         dx = jugador.x - jugador.posicion_anterior[0]
         dy = jugador.y - jugador.posicion_anterior[1]
         velocidad = math.sqrt(dx * dx + dy * dy)
@@ -132,6 +167,13 @@ class JugadorView:
             })
 
     def _renderizar_explosion(self, pantalla, jugador, tiempo_delta):
+        """Renderiza la animación de explosión del jugador.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            jugador: Objeto jugador en explosión.
+            tiempo_delta (float): Tiempo transcurrido desde la última actualización.
+        """
         jugador.actualizar_explosion(tiempo_delta)
         self._generar_particulas_explosion(jugador)
         self._actualizar_particulas_explosion(tiempo_delta)
@@ -150,6 +192,11 @@ class JugadorView:
             pantalla.blit(flash, (0, 0))
 
     def _generar_particulas_explosion(self, jugador):
+        """Genera las partículas iniciales de la explosión.
+
+        Args:
+            jugador: Objeto jugador para obtener posición y color.
+        """
         if not self.particulas_explosion:
             centro_x = jugador.x + self.config.TAMAÑO_JUGADOR // 2
             centro_y = jugador.y + self.config.TAMAÑO_JUGADOR // 2
@@ -195,6 +242,11 @@ class JugadorView:
                 })
 
     def _actualizar_particulas_explosion(self, delta_tiempo):
+        """Actualiza el estado de las partículas de explosión.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
         nuevas_particulas = []
         for p in self.particulas_explosion:
             p['vida'] -= delta_tiempo * 0.7

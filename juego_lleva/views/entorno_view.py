@@ -1,11 +1,23 @@
+"""Vista responsable del renderizado del entorno del juego."""
+
 import pygame
 
 
 class EntornoView:
+    """Clase que maneja la presentación visual del entorno."""
+
     def __init__(self):
+        """Inicializa la vista del entorno."""
         pass
 
     def renderizar(self, pantalla, entorno, tiempo_animacion=0):
+        """Renderiza el entorno completo en la pantalla.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            entorno: Objeto entorno a renderizar.
+            tiempo_animacion (float): Tiempo para animaciones.
+        """
         for obs in entorno.obstaculos:
             self._renderizar_obstaculo(pantalla, obs, tiempo_animacion)
 
@@ -16,6 +28,13 @@ class EntornoView:
             pantalla.blit(surface, (int(p['x']) - p['tamaño'], int(p['y']) - p['tamaño']))
 
     def _renderizar_obstaculo(self, pantalla, obstaculo, tiempo_animacion):
+        """Renderiza un obstáculo individual.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            obstaculo: Objeto obstáculo a renderizar.
+            tiempo_animacion (float): Tiempo para animaciones.
+        """
         import math
         if obstaculo.tipo == obstaculo.TIPO_CAJA:
             self._renderizar_caja(pantalla, obstaculo)
@@ -23,6 +42,12 @@ class EntornoView:
             self._renderizar_zona(pantalla, obstaculo, tiempo_animacion)
 
     def _renderizar_caja(self, pantalla, obstaculo):
+        """Renderiza un obstáculo tipo caja.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            obstaculo: Objeto obstáculo a renderizar.
+        """
         sombra = pygame.Surface((obstaculo.ancho + 4, obstaculo.alto + 4), pygame.SRCALPHA)
         pygame.draw.rect(sombra, (0, 0, 0, 80), (2, 2, obstaculo.ancho, obstaculo.alto), border_radius=6)
         pantalla.blit(sombra, (obstaculo.x, obstaculo.y))
@@ -41,6 +66,13 @@ class EntornoView:
                         2, border_radius=6)
 
     def _renderizar_zona(self, pantalla, obstaculo, tiempo_animacion):
+        """Renderiza un obstáculo tipo zona lenta.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            obstaculo: Objeto obstáculo a renderizar.
+            tiempo_animacion (float): Tiempo para animaciones.
+        """
         import math
         centro_x = obstaculo.x + obstaculo.ancho // 2
         centro_y = obstaculo.y + obstaculo.alto // 2

@@ -1,3 +1,5 @@
+"""Módulo de interfaz de usuario que maneja todos los elementos visuales del juego."""
+
 import pygame
 import math
 import random
@@ -5,7 +7,10 @@ from core.config import Config
 
 
 class Interfaz:
+    """Clase que gestiona toda la interfaz de usuario del juego."""
+
     def __init__(self):
+        """Inicializa la interfaz con fuentes y partículas decorativas."""
         self.config = Config()
         self.fuente_titulo = pygame.font.SysFont(None, 72)
         self.fuente_subtitulo = pygame.font.SysFont(None, 36)
@@ -19,6 +24,7 @@ class Interfaz:
         self._generar_particulas_menu()
 
     def _generar_particulas_menu(self):
+        """Genera partículas decorativas para el menú."""
         for _ in range(40):
             self.particulas.append({
                 'x': random.randint(0, self.config.ANCHO_PANTALLA),
@@ -31,6 +37,11 @@ class Interfaz:
             })
 
     def actualizar(self, delta_tiempo):
+        """Actualiza las animaciones de la interfaz.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
         self.tiempo_animacion += delta_tiempo
         for p in self.particulas:
             p['x'] += p['velocidad_x']
@@ -48,6 +59,11 @@ class Interfaz:
                 p['y'] = 0
 
     def dibujar_particulas_menu(self, pantalla):
+        """Dibuja las partículas decorativas del menú.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+        """
         for p in self.particulas:
             surface = pygame.Surface((p['tamaño'] * 2, p['tamaño'] * 2), pygame.SRCALPHA)
             color = (80 + int(40 * math.sin(p['fase'])),
@@ -58,6 +74,17 @@ class Interfaz:
             pantalla.blit(surface, (int(p['x']) - p['tamaño'], int(p['y']) - p['tamaño']))
 
     def dibujar_boton(self, pantalla, texto, x, y, ancho, alto, hover=False):
+        """Dibuja un botón con efecto hover.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            texto (str): Texto del botón.
+            x (int): Posición horizontal.
+            y (int): Posición vertical.
+            ancho (int): Ancho del botón.
+            alto (int): Alto del botón.
+            hover (bool): True si el mouse está sobre el botón.
+        """
         if hover:
             escala = 1.05
             nuevo_ancho = int(ancho * escala)
@@ -94,6 +121,16 @@ class Interfaz:
                                      nuevo_y + nuevo_alto // 2 - texto_render.get_height() // 2))
 
     def dibujar_panel(self, pantalla, x, y, ancho, alto, alpha=180):
+        """Dibuja un panel semitransparente.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            x (int): Posición horizontal.
+            y (int): Posición vertical.
+            ancho (int): Ancho del panel.
+            alto (int): Alto del panel.
+            alpha (int): Nivel de transparencia (0-255).
+        """
         sombra = pygame.Surface((ancho, alto), pygame.SRCALPHA)
         sombra.fill((0, 0, 0, 30))
         pygame.draw.rect(sombra, (0, 0, 0, 30), (0, 0, ancho, alto), border_radius=10)
@@ -105,9 +142,29 @@ class Interfaz:
         pantalla.blit(surface, (x, y))
 
     def _dentro_boton(self, pos, x, y, ancho, alto):
+        """Verifica si una posición está dentro de un botón.
+
+        Args:
+            pos (tuple): Posición (x, y) a verificar.
+            x (int): Posición horizontal del botón.
+            y (int): Posición vertical del botón.
+            ancho (int): Ancho del botón.
+            alto (int): Alto del botón.
+
+        Returns:
+            bool: True si la posición está dentro del botón.
+        """
         return x <= pos[0] <= x + ancho and y <= pos[1] <= y + alto
 
     def dibujar_hud(self, pantalla, tiempo, puntajes, jugadores):
+        """Dibuja el heads-up display con información del juego.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            tiempo (float): Tiempo transcurrido de la ronda.
+            puntajes (dict): Diccionario con tiempos de cada jugador.
+            jugadores (list): Lista de jugadores activos.
+        """
         self.dibujar_panel(pantalla, 0, 0, self.config.ANCHO_PANTALLA, 70, 220)
 
         tiempo_restante = max(0, self.config.DURACION_RONDA - tiempo)
@@ -159,6 +216,12 @@ class Interfaz:
         pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA - 90, 28))
 
     def dibujar_menu_principal(self, pantalla, mouse_pos=None):
+        """Dibuja el menú principal del juego.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+        """
         try:
             fondo_menu = pygame.image.load(self.config.FONDO_MENU).convert()
             fondo_menu = pygame.transform.scale(fondo_menu, (self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA))
@@ -212,6 +275,14 @@ class Interfaz:
         pantalla.blit(texto_ctrl, (self.config.ANCHO_PANTALLA // 2 - texto_ctrl.get_width() // 2, 565))
 
     def dibujar_pantalla_nombres(self, pantalla, nombres, nombre_activo, mouse_pos=None):
+        """Dibuja la pantalla de ingreso de nombres.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            nombres (list): Lista de nombres de jugadores.
+            nombre_activo (int): Índice del nombre que se está editando.
+            mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+        """
         pantalla.fill(self.config.COLOR_FONDO)
         self.dibujar_particulas_menu(pantalla)
 
@@ -253,6 +324,15 @@ class Interfaz:
         self.dibujar_boton(pantalla, "Jugar", self.config.ANCHO_PANTALLA // 2 - 140, 520, 280, 50, hover)
 
     def obtener_accion_menu(self, mouse_pos, click):
+        """Obtiene la acción del menú según la posición del mouse y el click.
+
+        Args:
+            mouse_pos (tuple): Posición del mouse.
+            click (bool): True si se hizo click.
+
+        Returns:
+            str: Acción seleccionada ("jugar", "ayuda", "salir") o None.
+        """
         if not click:
             return None
         botones = [
@@ -266,6 +346,12 @@ class Interfaz:
         return None
 
     def dibujar_ayuda(self, pantalla, mouse_pos=None):
+        """Dibuja la pantalla de ayuda con instrucciones del juego.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+        """
         pantalla.fill(self.config.COLOR_FONDO)
         self.dibujar_particulas_menu(pantalla)
 
@@ -300,6 +386,12 @@ class Interfaz:
         self.dibujar_boton(pantalla, "Volver", self.config.ANCHO_PANTALLA // 2 - 100, 670, 200, 50, hover)
 
     def dibujar_countdown(self, pantalla, numero):
+        """Dibuja el countdown antes de iniciar la partida.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            numero (int): Número del countdown a mostrar.
+        """
         pantalla.fill(self.config.COLOR_FONDO)
         self.dibujar_particulas_menu(pantalla)
 
@@ -319,6 +411,15 @@ class Interfaz:
                                         self.config.ALTO_PANTALLA // 2 + 80))
 
     def dibujar_fin_ronda(self, pantalla, ganador, puntajes, mouse_pos=None, jugadores=None):
+        """Dibuja la pantalla de fin de ronda con resultados.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            ganador (int): ID del jugador ganador.
+            puntajes (dict): Diccionario con tiempos de cada jugador.
+            mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+            jugadores (list, optional): Lista de jugadores.
+        """
         overlay = pygame.Surface((self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         pantalla.blit(overlay, (0, 0))
@@ -354,6 +455,15 @@ class Interfaz:
         self.dibujar_boton(pantalla, "Menu", self.config.ANCHO_PANTALLA // 2 + 20, 510, 190, 50, hover_menu)
 
     def obtener_accion_fin_ronda(self, mouse_pos, click):
+        """Obtiene la acción de fin de ronda según la posición del mouse y el click.
+
+        Args:
+            mouse_pos (tuple): Posición del mouse.
+            click (bool): True si se hizo click.
+
+        Returns:
+            str: Acción seleccionada ("revancha", "menu") o None.
+        """
         if not click:
             return None
         if self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 210, 510, 190, 50):

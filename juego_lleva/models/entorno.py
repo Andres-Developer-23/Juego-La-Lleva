@@ -1,3 +1,5 @@
+"""Modelo que representa el entorno del juego con obstáculos y partículas de fondo."""
+
 import math
 import random
 
@@ -8,13 +10,17 @@ from models.obstaculo import Obstaculo
 
 
 class Entorno:
+    """Clase que gestiona el entorno del juego, incluyendo obstáculos y efectos visuales."""
+
     def __init__(self):
+        """Inicializa el entorno con partículas de fondo y lista vacía de obstáculos."""
         self.config = Config()
         self.particulas_fondo = []
         self.obstaculos = []
         self._generar_particulas_fondo()
 
     def _generar_particulas_fondo(self):
+        """Genera partículas decorativas para el fondo del juego."""
         for _ in range(30):
             self.particulas_fondo.append({
                 'x': random.randint(0, self.config.ANCHO_PANTALLA),
@@ -26,6 +32,11 @@ class Entorno:
             })
 
     def generar_obstaculos(self, jugadores):
+        """Genera obstáculos aleatorios sin solaparse con jugadores u otros obstáculos.
+
+        Args:
+            jugadores (list): Lista de jugadores para evitar solapamientos.
+        """
         self.obstaculos = []
         cantidad = random.randint(self.config.CANTIDAD_OBSTACULOS_MIN,
                                  self.config.CANTIDAD_OBSTACULOS_MAX)
@@ -61,6 +72,11 @@ class Entorno:
                 self.obstaculos.append(Obstaculo(x, y, tipo))
 
     def actualizar(self, delta_tiempo):
+        """Actualiza las posiciones de las partículas de fondo.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
         for p in self.particulas_fondo:
             p['x'] += math.cos(p['angulo']) * p['velocidad']
             p['y'] += math.sin(p['angulo']) * p['velocidad']

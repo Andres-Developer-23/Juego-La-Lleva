@@ -1,13 +1,24 @@
+"""Gestor de modos de juego que administra la inicialización de partidas."""
+
 from controles.controlador import Controlador
 from models.entorno import Entorno
 
 
 class GestorModos:
+    """Clase que administra los diferentes modos de juego."""
+
     def __init__(self):
+        """Inicializa el gestor con controlador y entorno."""
         self.controlador = Controlador()
         self.entorno = Entorno()
 
     def iniciar_multijugador(self, juego, nombres=None):
+        """Inicia una partida multijugador con los jugadores especificados.
+
+        Args:
+            juego: Instancia del juego principal.
+            nombres (list, optional): Lista de nombres para los jugadores.
+        """
         juego.jugadores.clear()
         juego.jugadores_views.clear()
 

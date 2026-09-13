@@ -1,3 +1,5 @@
+"""Módulo principal del juego que orquesta todos los componentes MVC."""
+
 import sys
 
 import pygame
@@ -15,7 +17,14 @@ from views.entorno_view import EntornoView
 
 
 class Juego:
+    """Clase principal que orquesta el juego completo."""
+
     def __init__(self, config):
+        """Inicializa el juego con la configuración especificada.
+
+        Args:
+            config: Instancia de Config con los parámetros del juego.
+        """
         self.config = config
         self.pantalla = pygame.display.set_mode(
             (config.ANCHO_PANTALLA, config.ALTO_PANTALLA))
@@ -44,6 +53,11 @@ class Juego:
         self.ganador_explosion = None
 
     def _cargar_fondo(self):
+        """Carga la imagen de fondo del juego.
+
+        Returns:
+            pygame.Surface: Imagen de fondo escalada o None si hay error.
+        """
         try:
             imagen = pygame.image.load(self.config.FONDO).convert()
             return pygame.transform.scale(imagen, (self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA))
@@ -51,6 +65,7 @@ class Juego:
             return None
 
     def ejecutar(self):
+        """Ejecuta el bucle principal del juego."""
         self.tiempo_anterior = pygame.time.get_ticks() / 1000.0
         while True:
             tiempo_actual = pygame.time.get_ticks() / 1000.0
@@ -87,6 +102,7 @@ class Juego:
                 self._pantalla_explosion(delta_tiempo)
 
     def _menu_principal(self):
+        """Maneja la pantalla del menú principal."""
         accion = self.interfaz.obtener_accion_menu(self.mouse_pos, self.click_realizado)
 
         if accion == "jugar":
@@ -113,6 +129,7 @@ class Juego:
         pygame.display.flip()
 
     def _pantalla_nombres(self):
+        """Maneja la pantalla de ingreso de nombres."""
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
@@ -146,6 +163,7 @@ class Juego:
         pygame.display.flip()
 
     def _pantalla_ayuda(self):
+        """Maneja la pantalla de ayuda."""
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
                 self.estado = "menu"
@@ -163,6 +181,11 @@ class Juego:
         self.reloj.tick(self.config.FPS)
 
     def _pantalla_countdown(self, delta_tiempo):
+        """Maneja la pantalla de countdown antes de iniciar la partida.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
                 self.estado = "menu"
@@ -182,6 +205,11 @@ class Juego:
         self.reloj.tick(self.config.FPS)
 
     def _bucle_juego(self, delta_tiempo):
+        """Ejecuta el bucle principal de juego.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
                 self.estado = "menu"
@@ -228,6 +256,11 @@ class Juego:
         self.reloj.tick(self.config.FPS)
 
     def _pantalla_explosion(self, delta_tiempo):
+        """Maneja la pantalla de explosión cuando un jugador es tocado.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
                 self.estado = "menu"
@@ -254,12 +287,24 @@ class Juego:
         self.reloj.tick(self.config.FPS)
 
     def _procesar_colision(self, j1, j2):
+        """Procesa la colisión entre dos jugadores.
+
+        Args:
+            j1: Primer jugador involucrado.
+            j2: Segundo jugador involucrado.
+        """
         if j1.es_lleva:
             self._iniciar_explosion(j1, j2)
         elif j2.es_lleva:
             self._iniciar_explosion(j2, j1)
 
     def _iniciar_explosion(self, quien_tiene_lleva, quien_explota):
+        """Inicia la secuencia de explosión cuando un jugador con la pelota toca a otro.
+
+        Args:
+            quien_tiene_lleva: Jugador que tiene la pelota.
+            quien_explota: Jugador que será tocado y explotará.
+        """
         tiempo_lleva = self.tiempo_ronda - self.tiempo_inicio_lleva
         self.puntaje_service.registrar_lleva(quien_tiene_lleva.id, tiempo_lleva)
         self.ganador_explosion = quien_tiene_lleva
@@ -268,6 +313,7 @@ class Juego:
         self.estado = "explosion"
 
     def _finalizar_ronda(self):
+        """Finaliza la ronda actual y determina el ganador."""
         for jugador in self.jugadores:
             if jugador.es_lleva:
                 tiempo_lleva = self.tiempo_ronda - self.tiempo_inicio_lleva
@@ -276,6 +322,7 @@ class Juego:
         self.estado = "fin_ronda"
 
     def _pantalla_fin_ronda(self):
+        """Maneja la pantalla de fin de ronda mostrando resultados."""
         if self.ganador_explosion:
             ganador = self.ganador_explosion.id
         else:
@@ -311,6 +358,18 @@ class Juego:
         pygame.display.flip()
 
     def crear_jugador(self, x, y, id_jugador, teclas=None, nombre=None):
+        """Crea un nuevo jugador y su vista correspondiente.
+
+        Args:
+            x (int): Coordenada horizontal inicial.
+            y (int): Coordenada vertical inicial.
+            id_jugador (int): Identificador único del jugador.
+            teclas (dict, optional): Configuración de teclas para el jugador.
+            nombre (str, optional): Nombre del jugador.
+
+        Returns:
+            JugadorHumano: Jugador creado.
+        """
         jugador = JugadorHumano(x, y, id_jugador, teclas, nombre)
         self.jugadores.append(jugador)
         jugador_view = JugadorView()
@@ -319,6 +378,11 @@ class Juego:
         return jugador
 
     def set_lleva_inicial(self, id_jugador):
+        """Establece qué jugador tiene la pelota inicialmente.
+
+        Args:
+            id_jugador (int): ID del jugador que tendrá la pelota.
+        """
         for j in self.jugadores:
             j.es_lleva = (j.id == id_jugador)
         self.tiempo_inicio_lleva = 0

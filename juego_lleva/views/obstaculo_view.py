@@ -1,18 +1,36 @@
+"""Vista responsable del renderizado de obstáculos en pantalla."""
+
 import math
 import pygame
 
 
 class ObstaculoView:
+    """Clase que maneja la presentación visual de obstáculos."""
+
     def __init__(self):
+        """Inicializa la vista del obstáculo."""
         pass
 
     def renderizar(self, pantalla, obstaculo, tiempo_animacion=0):
+        """Renderiza un obstáculo en la pantalla.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            obstaculo: Objeto obstáculo a renderizar.
+            tiempo_animacion (float): Tiempo para animaciones.
+        """
         if obstaculo.tipo == obstaculo.TIPO_CAJA:
             self._renderizar_caja(pantalla, obstaculo)
         else:
             self._renderizar_zona(pantalla, obstaculo, tiempo_animacion)
 
     def _renderizar_caja(self, pantalla, obstaculo):
+        """Renderiza un obstáculo tipo caja.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            obstaculo: Objeto obstáculo a renderizar.
+        """
         sombra = pygame.Surface((obstaculo.ancho + 4, obstaculo.alto + 4), pygame.SRCALPHA)
         pygame.draw.rect(sombra, (0, 0, 0, 80), (2, 2, obstaculo.ancho, obstaculo.alto), border_radius=6)
         pantalla.blit(sombra, (obstaculo.x, obstaculo.y))
@@ -31,6 +49,13 @@ class ObstaculoView:
                         2, border_radius=6)
 
     def _renderizar_zona(self, pantalla, obstaculo, tiempo_animacion):
+        """Renderiza un obstáculo tipo zona lenta.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            obstaculo: Objeto obstáculo a renderizar.
+            tiempo_animacion (float): Tiempo para animaciones.
+        """
         centro_x = obstaculo.x + obstaculo.ancho // 2
         centro_y = obstaculo.y + obstaculo.alto // 2
         radio = obstaculo.ancho // 2
