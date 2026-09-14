@@ -4,10 +4,12 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 
 ## Características
 
-- Modo 1 jugador contra la computadora (IA)
+- Modo 1 jugador contra la computadora (IA equilibrada)
 - Multijugador local (2 jugadores)
+- Movimiento por tiempo real (velocidad en píxeles por segundo)
 - Lleva inicial aleatoria
 - Obstáculos: cajas (rebote) y zonas lentas
+- Efectos visuales al tocar (anillo + partículas)
 - Ranking de mejores tiempos con persistencia
 - Interfaz animada con partículas
 - Sonido y música generados proceduralmente

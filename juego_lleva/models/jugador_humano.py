@@ -19,17 +19,20 @@ class JugadorHumano(Jugador):
         super().__init__(x, y, id_jugador, nombre)
         self.teclas = teclas
 
-    def mover(self, teclas_presionadas=None, en_zona_lenta=False):
+    def mover(self, teclas_presionadas=None, en_zona_lenta=False, delta_tiempo=None):
         """Mueve el jugador según las teclas presionadas.
 
         Args:
             teclas_presionadas: Estado de las teclas del teclado.
             en_zona_lenta (bool): True si el jugador está en una zona que ralentiza.
+            delta_tiempo (float, optional): Tiempo transcurrido en segundos.
+                Por defecto equivale a un frame (1/FPS).
         """
         if teclas_presionadas is None:
             return
 
-        velocidad = self.config.VELOCIDAD_JUGADOR
+        dt = delta_tiempo if delta_tiempo is not None else 1.0 / self.config.FPS
+        velocidad = self.config.VELOCIDAD_JUGADOR * dt
         if en_zona_lenta:
             velocidad *= self.config.FACTOR_RALENTIZACION
 

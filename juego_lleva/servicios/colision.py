@@ -89,12 +89,14 @@ class ColisionService:
         rect_o = obstaculo.obtener_rectangulo()
         return rect_j.colliderect(rect_o)
 
-    def rebote_obstaculo(self, jugador, obstaculo):
+    def rebote_obstaculo(self, jugador, obstaculo, delta_tiempo=None):
         """Aplica un rebote al jugador cuando colisiona con un obstáculo.
 
         Args:
             jugador: Jugador que rebota.
             obstaculo: Obstáculo con el que colisiona.
+            delta_tiempo (float, optional): Tiempo transcurrido en segundos.
+                Por defecto equivale a un frame (1/FPS).
         """
         rect_j = jugador.obtener_rectangulo()
         rect_o = obstaculo.obtener_rectangulo()
@@ -112,7 +114,8 @@ class ColisionService:
             dx = 1
             dist = 1
 
-        fuerza = self.config.FUERZA_REBOTE
+        dt = delta_tiempo if delta_tiempo is not None else 1.0 / self.config.FPS
+        fuerza = self.config.FUERZA_REBOTE * dt
         jugador.x += (dx / dist) * fuerza
         jugador.y += (dy / dist) * fuerza
 

@@ -12,7 +12,10 @@ class Config:
     ALTO_PANTALLA = 1080
     FPS = 60
     TAMAÑO_JUGADOR = 95
-    VELOCIDAD_JUGADOR = 5
+    VELOCIDAD_JUGADOR = 300
+    VELOCIDAD_IA = 260
+    FACTOR_IA_HUYENDO = 0.9
+    VARIACION_IA = 40
     DURACION_RONDA = 60
 
     # Colores principales
@@ -32,7 +35,7 @@ class Config:
     TAMAÑO_CAJA = 100
     TAMAÑO_ZONA = 80
     FACTOR_RALENTIZACION = 0.4
-    FUERZA_REBOTE = 5
+    FUERZA_REBOTE = 300
 
     # UI
     COLOR_BOTON = (50, 50, 80)

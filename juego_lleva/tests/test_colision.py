@@ -50,6 +50,17 @@ class TestColisionService(unittest.TestCase):
         self.assertTrue(self.servicio.jugador_en_zona_lenta(jugador, [zona, caja]))
         self.assertFalse(self.servicio.jugador_en_zona_lenta(jugador, [caja]))
 
+    def test_rebote_escala_con_delta(self):
+        self.servicio.limpiar_cooldown()
+        jugador_a = JugadorHumano(350, 350, 0, {})
+        caja = Obstaculo(300, 400, "caja")
+        self.servicio.rebote_obstaculo(jugador_a, caja, delta_tiempo=1.0)
+        desplazamiento = jugador_a.x - 350
+
+        jugador_b = JugadorHumano(350, 350, 1, {})
+        self.servicio.rebote_obstaculo(jugador_b, caja, delta_tiempo=0.5)
+        self.assertAlmostEqual(jugador_b.x - 350, desplazamiento / 2, delta=2)
+
     def test_cooldown_evita_colisiones_seguidas(self):
         j1 = JugadorHumano(0, 0, 0, {})
         j2 = JugadorHumano(10, 0, 1, {})

@@ -32,6 +32,8 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         self.assertFalse(ana.es_lleva)
         self.assertTrue(beto.es_lleva)
         self.assertEqual(juego.puntaje_service.tiempos_lleva[0], 10)
+        self.assertEqual(len(juego.efectos), 1)
+        self.assertGreater(len(juego.efectos[0]['particulas']), 0)
 
         juego.tiempo_ronda = 60
         juego._finalizar_ronda()

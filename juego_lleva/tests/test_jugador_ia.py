@@ -55,6 +55,29 @@ class TestJugadorIA(unittest.TestCase):
         self.ia.mover()
         self.assertEqual((self.ia.x, self.ia.y), (x, y))
 
+    def test_delta_escala_el_desplazamiento(self):
+        self.humano.x = 500
+        self.ia.x = 300
+        self.ia.es_lleva = False
+        self.ia.mover(delta_tiempo=2.0)
+        self.assertLess(self.ia.x, 300 - self.config.VELOCIDAD_IA)
+        self.ia.x = 300
+        self.ia.mover(delta_tiempo=1.0)
+        self.assertGreater(self.ia.x, 300 - self.config.VELOCIDAD_IA - 5)
+
+    def test_huye_mas_lento_que_persigue(self):
+        self.humano.x = 500
+        self.ia.x = 300
+        self.ia.es_lleva = False
+        self.ia.mover(delta_tiempo=1.0)
+        avance_persiguiendo = 300 - self.ia.x
+
+        self.ia.x = 300
+        self.ia.es_lleva = True
+        self.ia.mover(delta_tiempo=1.0)
+        avance_huyendo = self.ia.x - 300
+        self.assertLess(avance_huyendo, avance_persiguiendo)
+
 
 if __name__ == '__main__':
     unittest.main()

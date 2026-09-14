@@ -17,6 +17,7 @@ from core.gestor_modos import GestorModos
 
 from views.jugador_view import JugadorView
 from views.entorno_view import EntornoView
+from views.efecto_view import EfectoView
 
 
 class Juego:
@@ -45,6 +46,8 @@ class Juego:
         self.jugadores = []
         self.jugadores_views = []
         self.entorno_view = EntornoView()
+        self.efecto_view = EfectoView()
+        self.efectos = []
         self.tiempo_ronda = 0
         self.estado = "menu"
         self.tiempo_inicio_lleva = 0
@@ -272,12 +275,12 @@ class Juego:
 
         for jugador in self.jugadores:
             en_zona = self.servicio_colision.jugador_en_zona_lenta(jugador, obstaculos)
-            jugador.mover(teclas, en_zona)
+            jugador.mover(teclas, en_zona, delta_tiempo)
 
         for jugador in self.jugadores:
             for obs in obstaculos:
                 if obs.tipo == "caja" and self.servicio_colision.detectar_colision_jugador_obstaculo(jugador, obs):
-                    self.servicio_colision.rebote_obstaculo(jugador, obs)
+                    self.servicio_colision.rebote_obstaculo(jugador, obs, delta_tiempo)
 
         colisiones = self.servicio_colision.detectar_colisiones(self.jugadores)
         for j1, j2 in colisiones:
@@ -299,6 +302,9 @@ class Juego:
         for i, jugador in enumerate(self.jugadores):
             if i < len(self.jugadores_views):
                 self.jugadores_views[i].renderizar(self.pantalla, jugador, delta_tiempo)
+
+        self.efectos = self.efecto_view.actualizar(self.efectos, delta_tiempo)
+        self.efecto_view.renderizar(self.pantalla, self.efectos)
 
         self.interfaz.dibujar_hud(self.pantalla, self.tiempo_ronda,
                                   self.puntaje_service.tiempos_lleva, self.jugadores)
@@ -342,7 +348,20 @@ class Juego:
         """
         self.tiempo_inicio_lleva = self.ronda_service.transferir_lleva(
             quien_tiene_lleva, quien_recibe, self.tiempo_ronda, self.tiempo_inicio_lleva)
+        self._crear_efecto_toque(quien_tiene_lleva, quien_recibe)
         self.audio.tocar()
+
+    def _crear_efecto_toque(self, j1, j2):
+        """Crea un efecto visual en el punto medio del toque.
+
+        Args:
+            j1: Primer jugador involucrado en el toque.
+            j2: Segundo jugador involucrado en el toque.
+        """
+        x1, y1 = j1.obtener_posicion()
+        x2, y2 = j2.obtener_posicion()
+        if len(self.efectos) < 6:
+            self.efectos.append(self.efecto_view.crear_toque((x1 + x2) / 2, (y1 + y2) / 2))
 
     def _finalizar_ronda(self):
         """Finaliza la ronda actual y determina el ganador."""
@@ -420,6 +439,7 @@ class Juego:
         else:
             self.gestor_modos.iniciar_multijugador(self, self.nombres)
         self._ranking_registrado = False
+        self.efectos.clear()
         self.estado = "countdown"
         self.countdown_valor = 3
         self.countdown_timer = 0
@@ -432,6 +452,7 @@ class Juego:
         self.jugadores_views.clear()
         self.tiempo_ronda = 0
         self.tiempo_inicio_lleva = 0
+        self.efectos.clear()
         self._ranking_registrado = False
 
     def crear_jugador(self, x, y, id_jugador, teclas=None, nombre=None):

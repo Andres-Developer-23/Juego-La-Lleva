@@ -32,12 +32,17 @@ class JugadorIA(Jugador):
                 return j
         return None
 
-    def mover(self, teclas=None, en_zona_lenta=False):
+    def mover(self, teclas=None, en_zona_lenta=False, delta_tiempo=None):
         """Mueve la IA: persigue si es la lleva, huye si no lo es.
+
+        La IA es ligeramente más lenta que el jugador humano y huye aún más
+        despacio, para que la partida sea desafiante pero ganable.
 
         Args:
             teclas: Se ignora (la IA no usa teclado).
             en_zona_lenta (bool): True si el jugador está en una zona que ralentiza.
+            delta_tiempo (float, optional): Tiempo transcurrido en segundos.
+                Por defecto equivale a un frame (1/FPS).
         """
         objetivo = self._objetivo()
         if objetivo is None:
@@ -49,13 +54,19 @@ class JugadorIA(Jugador):
         if dist < 1:
             return
 
-        velocidad = self.config.VELOCIDAD_JUGADOR
+        dt = delta_tiempo if delta_tiempo is not None else 1.0 / self.config.FPS
+
+        velocidad = self.config.VELOCIDAD_IA * dt
         if en_zona_lenta:
             velocidad *= self.config.FACTOR_RALENTIZACION
+        if self.es_lleva:
+            velocidad *= self.config.FACTOR_IA_HUYENDO
 
         direccion = 1 if self.es_lleva else -1
-        paso_x = (dx / dist) * velocidad * direccion + random.uniform(-0.5, 0.5)
-        paso_y = (dy / dist) * velocidad * direccion + random.uniform(-0.5, 0.5)
+        variacion = random.uniform(-1, 1) * self.config.VARIACION_IA * dt
+
+        paso_x = (dx / dist) * velocidad * direccion + variacion
+        paso_y = (dy / dist) * velocidad * direccion + variacion
 
         self.x += paso_x
         self.y += paso_y
