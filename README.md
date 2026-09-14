@@ -73,8 +73,20 @@ juego_lleva/
 ├── servicios/      # Lógica de negocio
 ├── controles/      # Manejo de entrada
 ├── interfaces/     # Abstracciones
+├── tests/          # Pruebas unitarias e integración
 └── assets/         # Sprites y fondos
 ```
+
+## Pruebas
+
+Ejecutar la suite de pruebas desde el directorio `juego_lleva/`:
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+Cubre puntajes, reglas de la ronda (regla clásica), ranking con persistencia,
+colisiones, movimiento de la IA y síntesis de audio.
 
 ## Requisitos
 

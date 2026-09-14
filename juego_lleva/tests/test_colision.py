@@ -1,0 +1,77 @@
+"""Pruebas del servicio de colisiones con modelos reales."""
+
+import os
+import unittest
+
+os.environ['SDL_VIDEODRIVER'] = 'dummy'
+os.environ['SDL_AUDIODRIVER'] = 'dummy'
+
+from models.jugador_humano import JugadorHumano
+from models.obstaculo import Obstaculo
+from servicios.colision import ColisionService
+
+
+class TestColisionService(unittest.TestCase):
+
+    def setUp(self):
+        self.servicio = ColisionService()
+
+    def test_detectar_colision_cuando_se_superponen(self):
+        j1 = JugadorHumano(0, 0, 0, {})
+        j2 = JugadorHumano(10, 0, 1, {})
+        self.assertTrue(self.servicio.detectar_colision(j1, j2))
+
+    def test_detectar_colision_falsa_cuando_estan_alejados(self):
+        j1 = JugadorHumano(0, 0, 0, {})
+        j2 = JugadorHumano(300, 0, 1, {})
+        self.assertFalse(self.servicio.detectar_colision(j1, j2))
+
+    def test_separar_jugadores_aleja_posiciones(self):
+        j1 = JugadorHumano(0, 0, 0, {})
+        j2 = JugadorHumano(10, 0, 1, {})
+        x1, x2 = j1.x, j2.x
+        self.servicio.separar_jugadores(j1, j2, 95)
+        self.assertLess(j1.x, x1)
+        self.assertGreater(j2.x, x2)
+
+    def test_rebote_obstaculo_aleja_del_obstaculo(self):
+        jugador = JugadorHumano(350, 350, 0, {})
+        caja = Obstaculo(300, 400, "caja")
+        x1, y1 = jugador.x, jugador.y
+        self.assertTrue(self.servicio.detectar_colision_jugador_obstaculo(jugador, caja))
+        self.servicio.rebote_obstaculo(jugador, caja)
+        self.assertGreater(jugador.x, x1)
+        self.assertLess(jugador.y, y1)
+
+    def test_jugador_en_zona_lenta(self):
+        jugador = JugadorHumano(100, 100, 0, {})
+        zona = Obstaculo(100, 100, "zona")
+        caja = Obstaculo(500, 500, "caja")
+        self.assertTrue(self.servicio.jugador_en_zona_lenta(jugador, [zona, caja]))
+        self.assertFalse(self.servicio.jugador_en_zona_lenta(jugador, [caja]))
+
+    def test_cooldown_evita_colisiones_seguidas(self):
+        j1 = JugadorHumano(0, 0, 0, {})
+        j2 = JugadorHumano(10, 0, 1, {})
+        pares = self.servicio.detectar_colisiones([j1, j2])
+        self.assertEqual(len(pares), 1)
+        self.assertEqual(self.servicio.detectar_colisiones([j1, j2]), [])
+
+    def test_limpiar_cooldown_reanuda_deteccion(self):
+        j1 = JugadorHumano(0, 0, 0, {})
+        j2 = JugadorHumano(10, 0, 1, {})
+        self.servicio.detectar_colisiones([j1, j2])
+        self.servicio.limpiar_cooldown()
+        self.assertEqual(len(self.servicio.detectar_colisiones([j1, j2])), 1)
+
+    def test_cooldown_se_agota(self):
+        j1 = JugadorHumano(0, 0, 0, {})
+        j2 = JugadorHumano(10, 0, 1, {})
+        self.servicio.detectar_colisiones([j1, j2])
+        for _ in range(self.servicio.COOLDOWN_FRAMES):
+            self.servicio.detectar_colisiones([j1, j2])
+        self.assertEqual(len(self.servicio.detectar_colisiones([j1, j2])), 1)
+
+
+if __name__ == '__main__':
+    unittest.main()

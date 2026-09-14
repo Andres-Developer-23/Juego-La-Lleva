@@ -9,6 +9,7 @@ from servicios.audio import ServicioAudio
 from servicios.colision import ColisionService
 from servicios.puntaje import PuntajeService
 from servicios.ranking import RankingService
+from servicios.ronda import RondaService
 from ui.interfaz import Interfaz
 
 from core.config import Config
@@ -36,6 +37,7 @@ class Juego:
         self.puntaje_service = PuntajeService()
         self.servicio_colision = ColisionService()
         self.ranking_service = RankingService(config.RANKING_PATH)
+        self.ronda_service = RondaService(self.puntaje_service)
         self.audio = ServicioAudio()
         self.musica_activa = True
         self.modo = "dos_jugadores"
@@ -338,19 +340,14 @@ class Juego:
             quien_tiene_lleva: Jugador que tenía el rol de 'La Lleva'.
             quien_recibe: Jugador que fue tocado y pasa a ser 'La Lleva'.
         """
-        tiempo_lleva = self.tiempo_ronda - self.tiempo_inicio_lleva
-        self.puntaje_service.registrar_lleva(quien_tiene_lleva.id, tiempo_lleva)
-        quien_tiene_lleva.es_lleva = False
-        quien_recibe.es_lleva = True
-        self.tiempo_inicio_lleva = self.tiempo_ronda
+        self.tiempo_inicio_lleva = self.ronda_service.transferir_lleva(
+            quien_tiene_lleva, quien_recibe, self.tiempo_ronda, self.tiempo_inicio_lleva)
         self.audio.tocar()
 
     def _finalizar_ronda(self):
         """Finaliza la ronda actual y determina el ganador."""
-        for jugador in self.jugadores:
-            if jugador.es_lleva:
-                tiempo_lleva = self.tiempo_ronda - self.tiempo_inicio_lleva
-                self.puntaje_service.registrar_lleva(jugador.id, tiempo_lleva)
+        self.ronda_service.cerrar_lleva_actual(self.jugadores, self.tiempo_ronda,
+                                               self.tiempo_inicio_lleva)
         self.audio.fin_ronda()
         self.estado = "fin_ronda"
 
@@ -483,7 +480,6 @@ class Juego:
         Args:
             id_jugador (int): ID del jugador que tendrá la pelota.
         """
-        for j in self.jugadores:
-            j.es_lleva = (j.id == id_jugador)
+        self.ronda_service.asignar_lleva_inicial(self.jugadores, id_jugador)
         self.tiempo_inicio_lleva = 0
         self.servicio_colision.limpiar_cooldown()
