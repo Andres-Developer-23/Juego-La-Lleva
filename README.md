@@ -1,14 +1,18 @@
 # La Lleva - Juego Tradicional Colombiano
 
-Juego multijugador local construido con Python y Pygame. Dos jugadores compiten por evitar ser "la lleva". Gana quien menos tiempo sea la lleva.
+Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la lleva". Gana quien menos tiempo sea la lleva.
 
 ## Características
 
+- Modo 1 jugador contra la computadora (IA)
 - Multijugador local (2 jugadores)
 - Lleva inicial aleatoria
 - Obstáculos: cajas (rebote) y zonas lentas
 - Ranking de mejores tiempos con persistencia
 - Interfaz animada con partículas
+- Sonido y música generados proceduralmente
+- Pausa durante la partida
+- Modo ventana / pantalla completa
 
 ## Instalación
 
@@ -38,19 +42,25 @@ Juego multijugador local construido con Python y Pygame. Dos jugadores compiten 
 
 ## Controles
 
-| Acción | Jugador 1 | Jugador 2 |
-|--------|-----------|-----------|
-| Moverse | W A S D | Flechas |
-| Volver al menú | ESC | ESC |
+| Acción | Control |
+|--------|---------|
+| Menú | 1: Un Jugador, 2: Multijugador |
+| Moverse (J1) | W A S D |
+| Moverse (J2) | Flechas |
+| Pausar / continuar | P o ESC |
+| Volver al menú desde pausa | Q |
+| Música | M |
+| Pantalla completa | F11 |
 
 ## Cómo Jugar
 
-1. Ingresar nombres de los jugadores
-2. La lleva inicial se elige al azar
-3. El jugador con la lleva (rojo) debe tocar al otro
-4. Al ser tocado, ese jugador pasa a ser la lleva
-5. Después de 60 segundos, gana quien menos tiempo fue la lleva
-6. Los tiempos se registran en el ranking
+1. Elegir modo (Un Jugador contra la IA o Multijugador local)
+2. Ingresar nombres de los jugadores
+3. La lleva inicial se elige al azar
+4. El jugador con la lleva (rojo) debe tocar al otro
+5. Al ser tocado, ese jugador pasa a ser la lleva
+6. Después de 60 segundos, gana quien menos tiempo fue la lleva
+7. Los tiempos se registran en el ranking
 
 ## Estructura del Proyecto
 
@@ -69,4 +79,4 @@ juego_lleva/
 ## Requisitos
 
 - Python 3.12+
-- Pygame 2.6.1
+- pygame-ce 2.5+

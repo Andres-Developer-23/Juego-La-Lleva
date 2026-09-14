@@ -37,3 +37,23 @@ class GestorModos:
         juego.set_lleva_inicial(random.randint(0, len(juego.jugadores) - 1))
         juego.tiempo_ronda = 0
         juego.puntaje_service.reiniciar()
+
+    def iniciar_un_jugador(self, juego, nombre=None):
+        """Inicia una partida de un jugador contra la computadora.
+
+        Args:
+            juego: Instancia del juego principal.
+            nombre (str, optional): Nombre del jugador humano.
+        """
+        juego.jugadores.clear()
+        juego.jugadores_views.clear()
+
+        teclas = self.controlador.obtener_teclas_jugador(0)
+        juego.crear_jugador(100, 100, 0, teclas=teclas, nombre=nombre or "J1")
+        juego.crear_jugador_ia(900, 100, 1, "IA")
+
+        self.entorno.generar_obstaculos(juego.jugadores)
+
+        juego.set_lleva_inicial(random.randint(0, len(juego.jugadores) - 1))
+        juego.tiempo_ronda = 0
+        juego.puntaje_service.reiniciar()

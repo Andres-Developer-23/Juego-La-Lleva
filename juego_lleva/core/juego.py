@@ -4,6 +4,8 @@ import sys
 
 import pygame
 from models.jugador_humano import JugadorHumano
+from models.jugador_ia import JugadorIA
+from servicios.audio import ServicioAudio
 from servicios.colision import ColisionService
 from servicios.puntaje import PuntajeService
 from servicios.ranking import RankingService
@@ -34,6 +36,9 @@ class Juego:
         self.puntaje_service = PuntajeService()
         self.servicio_colision = ColisionService()
         self.ranking_service = RankingService(config.RANKING_PATH)
+        self.audio = ServicioAudio()
+        self.musica_activa = True
+        self.modo = "dos_jugadores"
         self.gestor_modos = GestorModos()
         self.jugadores = []
         self.jugadores_views = []
@@ -64,55 +69,93 @@ class Juego:
         except (pygame.error, OSError):
             return None
 
+    def _alternar_pantalla_completa(self):
+        """Alterna entre modo ventana y pantalla completa."""
+        try:
+            pygame.display.toggle_fullscreen()
+        except pygame.error:
+            pass
+
+    def _gestionar_musica(self):
+        """Inicia o detiene la música según la preferencia del jugador."""
+        if not self.audio.activo:
+            return
+        if self.musica_activa and not self.audio.musica_suena():
+            self.audio.reproducir_musica()
+        elif not self.musica_activa and self.audio.musica_suena():
+            self.audio.detener_musica()
+
     def ejecutar(self):
         """Ejecuta el bucle principal del juego."""
         self.tiempo_anterior = pygame.time.get_ticks() / 1000.0
         while True:
-            tiempo_actual = pygame.time.get_ticks() / 1000.0
-            delta_tiempo = tiempo_actual - self.tiempo_anterior
-            self.tiempo_anterior = tiempo_actual
+            self._procesar_frame()
 
-            self.mouse_pos = pygame.mouse.get_pos()
-            self.click_realizado = False
-            self.eventos_pendientes = []
+    def _procesar_frame(self):
+        """Procesa un frame completo del juego."""
+        tiempo_actual = pygame.time.get_ticks() / 1000.0
+        delta_tiempo = tiempo_actual - self.tiempo_anterior
+        self.tiempo_anterior = tiempo_actual
 
-            for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-                    self.click_realizado = True
-                self.eventos_pendientes.append(evento)
+        self.mouse_pos = pygame.mouse.get_pos()
+        self.click_realizado = False
+        self.eventos_pendientes = []
 
-            self.interfaz.actualizar(delta_tiempo)
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                self.click_realizado = True
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_F11:
+                    self._alternar_pantalla_completa()
+                elif evento.key == pygame.K_m and self.estado != "nombres":
+                    self.musica_activa = not self.musica_activa
+            self.eventos_pendientes.append(evento)
 
-            if self.estado == "menu":
-                self._menu_principal()
-            elif self.estado == "nombres":
-                self._pantalla_nombres()
-            elif self.estado == "jugando":
-                self._bucle_juego(delta_tiempo)
-            elif self.estado == "fin_ronda":
-                self._pantalla_fin_ronda()
-            elif self.estado == "ayuda":
-                self._pantalla_ayuda()
-            elif self.estado == "countdown":
-                self._pantalla_countdown(delta_tiempo)
-            elif self.estado == "ranking":
-                self._pantalla_ranking()
+        self.interfaz.actualizar(delta_tiempo)
+        self._gestionar_musica()
+
+        if self.estado == "menu":
+            self._menu_principal()
+        elif self.estado == "nombres":
+            self._pantalla_nombres()
+        elif self.estado == "jugando":
+            self._bucle_juego(delta_tiempo)
+        elif self.estado == "pausa":
+            self._pantalla_pausa()
+        elif self.estado == "fin_ronda":
+            self._pantalla_fin_ronda()
+        elif self.estado == "ayuda":
+            self._pantalla_ayuda()
+        elif self.estado == "countdown":
+            self._pantalla_countdown(delta_tiempo)
+        elif self.estado == "ranking":
+            self._pantalla_ranking()
 
     def _menu_principal(self):
         """Maneja la pantalla del menú principal."""
         accion = self.interfaz.obtener_accion_menu(self.mouse_pos, self.click_realizado)
 
-        if accion == "jugar":
+        if accion == "un_jugador":
+            self.modo = "un_jugador"
+            self.nombres = ["J1"]
+            self.nombre_activo = 0
+            self.estado = "nombres"
+            self.audio.clic()
+        elif accion == "jugar":
+            self.modo = "dos_jugadores"
             self.nombres = ["J1", "J2"]
             self.nombre_activo = 0
             self.estado = "nombres"
+            self.audio.clic()
         elif accion == "ayuda":
             self.estado = "ayuda"
+            self.audio.clic()
         elif accion == "ranking":
             self.estado = "ranking"
+            self.audio.clic()
         elif accion == "salir":
             pygame.quit()
             sys.exit()
@@ -120,25 +163,31 @@ class Juego:
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_1:
+                    self.modo = "un_jugador"
+                    self.nombres = ["J1"]
+                    self.nombre_activo = 0
+                    self.estado = "nombres"
+                    self.audio.clic()
+                elif evento.key == pygame.K_2:
+                    self.modo = "dos_jugadores"
                     self.nombres = ["J1", "J2"]
                     self.nombre_activo = 0
                     self.estado = "nombres"
-                elif evento.key == pygame.K_2:
-                    pygame.quit()
-                    sys.exit()
+                    self.audio.clic()
 
         self.interfaz.dibujar_menu_principal(self.pantalla, self.mouse_pos)
         pygame.display.flip()
 
     def _pantalla_nombres(self):
         """Maneja la pantalla de ingreso de nombres."""
+        cantidad_jugadores = len(self.nombres)
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
                     self._volver_al_menu()
                     return
-                elif evento.key == pygame.K_TAB:
-                    self.nombre_activo = (self.nombre_activo + 1) % 2
+                elif evento.key == pygame.K_TAB and cantidad_jugadores > 1:
+                    self.nombre_activo = (self.nombre_activo + 1) % cantidad_jugadores
                 elif evento.key == pygame.K_RETURN:
                     self._iniciar_partida()
                     return
@@ -155,7 +204,8 @@ class Juego:
                 return
 
         self.interfaz.dibujar_pantalla_nombres(self.pantalla, self.nombres,
-                                                self.nombre_activo, self.mouse_pos)
+                                                self.nombre_activo, self.mouse_pos,
+                                                cantidad_jugadores)
         pygame.display.flip()
 
     def _pantalla_ayuda(self):
@@ -193,8 +243,10 @@ class Juego:
             self.countdown_timer = 0
             self.countdown_valor -= 1
             if self.countdown_valor <= 0:
+                self.audio.inicio()
                 self.estado = "jugando"
                 return
+            self.audio.beep()
 
         self.interfaz.dibujar_countdown(self.pantalla, self.countdown_valor)
         pygame.display.flip()
@@ -207,8 +259,8 @@ class Juego:
             delta_tiempo (float): Tiempo transcurrido desde la última actualización.
         """
         for evento in self.eventos_pendientes:
-            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
-                self._volver_al_menu()
+            if evento.type == pygame.KEYDOWN and evento.key in (pygame.K_ESCAPE, pygame.K_p):
+                self.estado = "pausa"
                 return
 
         teclas = pygame.key.get_pressed()
@@ -252,6 +304,21 @@ class Juego:
         pygame.display.flip()
         self.reloj.tick(self.config.FPS)
 
+    def _pantalla_pausa(self):
+        """Maneja la pantalla de pausa durante la partida."""
+        for evento in self.eventos_pendientes:
+            if evento.type == pygame.KEYDOWN:
+                if evento.key in (pygame.K_p, pygame.K_ESCAPE):
+                    self.estado = "jugando"
+                    return
+                if evento.key == pygame.K_q:
+                    self._volver_al_menu()
+                    return
+
+        self.interfaz.dibujar_pausa(self.pantalla)
+        pygame.display.flip()
+        self.reloj.tick(self.config.FPS)
+
     def _procesar_colision(self, j1, j2):
         """Procesa la colisión entre dos jugadores.
 
@@ -276,6 +343,7 @@ class Juego:
         quien_tiene_lleva.es_lleva = False
         quien_recibe.es_lleva = True
         self.tiempo_inicio_lleva = self.tiempo_ronda
+        self.audio.tocar()
 
     def _finalizar_ronda(self):
         """Finaliza la ronda actual y determina el ganador."""
@@ -283,6 +351,7 @@ class Juego:
             if jugador.es_lleva:
                 tiempo_lleva = self.tiempo_ronda - self.tiempo_inicio_lleva
                 self.puntaje_service.registrar_lleva(jugador.id, tiempo_lleva)
+        self.audio.fin_ronda()
         self.estado = "fin_ronda"
 
     def _pantalla_fin_ronda(self):
@@ -349,11 +418,15 @@ class Juego:
 
     def _iniciar_partida(self):
         """Prepara y arranca una partida, sin importar desde qué pantalla se invoque."""
-        self.gestor_modos.iniciar_multijugador(self, self.nombres)
+        if self.modo == "un_jugador":
+            self.gestor_modos.iniciar_un_jugador(self, self.nombres[0] if self.nombres else "J1")
+        else:
+            self.gestor_modos.iniciar_multijugador(self, self.nombres)
         self._ranking_registrado = False
         self.estado = "countdown"
         self.countdown_valor = 3
         self.countdown_timer = 0
+        self.audio.beep()
 
     def _volver_al_menu(self):
         """Vuelve al menú principal limpiando el estado de la partida."""
@@ -378,9 +451,29 @@ class Juego:
             JugadorHumano: Jugador creado.
         """
         jugador = JugadorHumano(x, y, id_jugador, teclas, nombre)
-        self.jugadores.append(jugador)
         jugador_view = JugadorView()
         jugador_view.cargar_sprites(jugador)
+        self.jugadores.append(jugador)
+        self.jugadores_views.append(jugador_view)
+        return jugador
+
+    def crear_jugador_ia(self, x, y, id_jugador, nombre="IA"):
+        """Crea un jugador controlado por IA y su vista correspondiente.
+
+        Args:
+            x (int): Coordenada horizontal inicial.
+            y (int): Coordenada vertical inicial.
+            id_jugador (int): Identificador único del jugador.
+            nombre (str, optional): Nombre del jugador. Por defecto "IA".
+
+        Returns:
+            JugadorIA: Jugador creado.
+        """
+        jugador = JugadorIA(x, y, id_jugador, nombre)
+        jugador.jugadores = self.jugadores
+        jugador_view = JugadorView()
+        jugador_view.cargar_sprites(jugador)
+        self.jugadores.append(jugador)
         self.jugadores_views.append(jugador_view)
         return jugador
 

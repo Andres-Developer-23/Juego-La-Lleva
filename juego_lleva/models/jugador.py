@@ -33,6 +33,11 @@ class Jugador(Movible):
         """
         return (self.x, self.y)
 
+    def _limitar_pantalla(self):
+        """Limita la posición del jugador a los bordes de la pantalla."""
+        self.x = max(0, min(self.x, self.config.ANCHO_PANTALLA - self.config.TAMAÑO_JUGADOR))
+        self.y = max(0, min(self.y, self.config.ALTO_PANTALLA - self.config.TAMAÑO_JUGADOR))
+
     def obtener_rectangulo(self):
         """Obtiene el rectángulo de colisión del jugador.
 

@@ -212,8 +212,8 @@ class Interfaz:
 
             x_jugador += 240
 
-        texto_salir = self.fuente_pequena.render("ESC: Menu", True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA - 90, 28))
+        texto_salir = self.fuente_pequena.render("P: Pausa", True, self.config.COLOR_PLATA)
+        pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA - 80, 28))
 
     def dibujar_menu_principal(self, pantalla, mouse_pos=None):
         """Dibuja el menú principal del juego.
@@ -257,25 +257,26 @@ class Interfaz:
         texto_sub = self.fuente_subtitulo.render("Juego Tradicional Colombiano", True, self.config.COLOR_PLATA)
         pantalla.blit(texto_sub, (self.config.ANCHO_PANTALLA // 2 - texto_sub.get_width() // 2, 195))
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 190, 260, 380, 325, 160)
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 190, 245, 380, 425, 160)
 
         botones = [
-            ("Jugar", 280),
-            ("Como Jugar", 355),
-            ("Ranking", 430),
-            ("Salir", 505)
+            ("Un Jugador", 270),
+            ("Multijugador", 345),
+            ("Como Jugar", 420),
+            ("Ranking", 495),
+            ("Salir", 570)
         ]
 
         for texto_boton, y in botones:
             hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 50)
             self.dibujar_boton(pantalla, texto_boton, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 50, hover)
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 170, 615, 340, 70, 130)
-        controles = "J1: WASD   |   J2: Flechas"
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 170, 700, 340, 70, 130)
+        controles = "J1: WASD   |   J2: Flechas   |   F11: Pantalla"
         texto_ctrl = self.fuente_pequena.render(controles, True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_ctrl, (self.config.ANCHO_PANTALLA // 2 - texto_ctrl.get_width() // 2, 640))
+        pantalla.blit(texto_ctrl, (self.config.ANCHO_PANTALLA // 2 - texto_ctrl.get_width() // 2, 724))
 
-    def dibujar_pantalla_nombres(self, pantalla, nombres, nombre_activo, mouse_pos=None):
+    def dibujar_pantalla_nombres(self, pantalla, nombres, nombre_activo, mouse_pos=None, cantidad=None):
         """Dibuja la pantalla de ingreso de nombres.
 
         Args:
@@ -283,7 +284,9 @@ class Interfaz:
             nombres (list): Lista de nombres de jugadores.
             nombre_activo (int): Índice del nombre que se está editando.
             mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+            cantidad (int, optional): Número de jugadores a mostrar. Por defecto 2.
         """
+        total_campos = cantidad if cantidad is not None else len(nombres)
         pantalla.fill(self.config.COLOR_FONDO)
         self.dibujar_particulas_menu(pantalla)
 
@@ -292,7 +295,7 @@ class Interfaz:
 
         self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 220, 160, 440, 340, 180)
 
-        for i in range(2):
+        for i in range(total_campos):
             y_campo = 200 + i * 120
             color_label = self.config.COLOR_JUGADOR_1 if i == 0 else self.config.COLOR_JUGADOR_2
             label = self.fuente_boton.render(f"Jugador {i + 1}:", True, color_label)
@@ -318,7 +321,10 @@ class Interfaz:
                 pygame.draw.line(pantalla, (255, 255, 255), (cursor_x, campo_y + 8),
                                (cursor_x, campo_y + campo_alto - 8), 2)
 
-        texto_hint = self.fuente_pequena.render("TAB: cambiar campo  |  ENTER: jugar", True, self.config.COLOR_PLATA)
+        if total_campos > 1:
+            texto_hint = self.fuente_pequena.render("TAB: cambiar campo  |  ENTER: jugar", True, self.config.COLOR_PLATA)
+        else:
+            texto_hint = self.fuente_pequena.render("ENTER: jugar", True, self.config.COLOR_PLATA)
         pantalla.blit(texto_hint, (self.config.ANCHO_PANTALLA // 2 - texto_hint.get_width() // 2, 470))
 
         hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 140, 520, 280, 50)
@@ -332,15 +338,16 @@ class Interfaz:
             click (bool): True si se hizo click.
 
         Returns:
-            str: Acción seleccionada ("jugar", "ayuda", "salir") o None.
+            str: Acción seleccionada ("un_jugador", "jugar", "ayuda", "ranking", "salir") o None.
         """
         if not click:
             return None
         botones = [
-            (self.config.ANCHO_PANTALLA // 2 - 140, 280, 280, 50, "jugar"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 355, 280, 50, "ayuda"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 430, 280, 50, "ranking"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 505, 280, 50, "salir")
+            (self.config.ANCHO_PANTALLA // 2 - 140, 270, 280, 50, "un_jugador"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 345, 280, 50, "jugar"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 420, 280, 50, "ayuda"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 495, 280, 50, "ranking"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 570, 280, 50, "salir")
         ]
         for x, y, ancho, alto, accion in botones:
             if self._dentro_boton(mouse_pos, x, y, ancho, alto):
@@ -374,15 +381,16 @@ class Interfaz:
             ("Controles:", self.config.COLOR_DORADO, 280),
             ("J1: W (arriba), A (izq), S (abajo), D (der)", self.config.COLOR_JUGADOR_1, 310),
             ("J2: Flechas del teclado", self.config.COLOR_JUGADOR_2, 335),
-            ("ESC: Volver al menu", self.config.COLOR_PLATA, 360),
-            ("", None, 385),
-            ("Obstaculos:", self.config.COLOR_DORADO, 395),
-            ("- Cajas (marrones): rebote al chocar.", (255, 255, 255), 425),
-            ("- Zonas (azules): ralentizan el movimiento.", (255, 255, 255), 450),
-            ("", None, 475),
-            ("Ranking:", self.config.COLOR_DORADO, 485),
-            ("- Al finalizar una ronda, tu tiempo se registra.", (255, 255, 255), 515),
-            ("- Consulta los mejores tiempos desde el menu.", (255, 255, 255), 540),
+            ("P o ESC: Pausa | F11: Pantalla completa | M: Musica", self.config.COLOR_PLATA, 360),
+            ("Q: Volver al menu (en pausa) | 1 y 2: Modos de juego", self.config.COLOR_PLATA, 385),
+            ("", None, 410),
+            ("Obstaculos:", self.config.COLOR_DORADO, 420),
+            ("- Cajas (marrones): rebote al chocar.", (255, 255, 255), 450),
+            ("- Zonas (azules): ralentizan el movimiento.", (255, 255, 255), 475),
+            ("", None, 500),
+            ("Ranking:", self.config.COLOR_DORADO, 510),
+            ("- Al finalizar una ronda, tu tiempo se registra.", (255, 255, 255), 540),
+            ("- Consulta los mejores tiempos desde el menu.", (255, 255, 255), 565),
         ]
 
         for texto, color, y in secciones:
@@ -417,6 +425,31 @@ class Interfaz:
         texto_preparado = self.fuente_subtitulo.render("Preparate...", True, self.config.COLOR_PLATA)
         pantalla.blit(texto_preparado, (self.config.ANCHO_PANTALLA // 2 - texto_preparado.get_width() // 2,
                                         self.config.ALTO_PANTALLA // 2 + 80))
+
+    def dibujar_pausa(self, pantalla, mouse_pos=None):
+        """Dibuja la pantalla de pausa sobre la partida.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+        """
+        overlay = pygame.Surface((self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        pantalla.blit(overlay, (0, 0))
+
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 220, 300, 440, 260, 220)
+
+        texto_titulo = self.fuente_grande.render("PAUSA", True, self.config.COLOR_DORADO)
+        pantalla.blit(texto_titulo, (self.config.ANCHO_PANTALLA // 2 - texto_titulo.get_width() // 2, 330))
+
+        texto_pista = self.fuente_subtitulo.render("Pulsa P o ESC para continuar", True, (255, 255, 255))
+        pantalla.blit(texto_pista, (self.config.ANCHO_PANTALLA // 2 - texto_pista.get_width() // 2, 410))
+
+        texto_musica = self.fuente_pequena.render("M: Musica  |  F11: Pantalla completa", True, self.config.COLOR_PLATA)
+        pantalla.blit(texto_musica, (self.config.ANCHO_PANTALLA // 2 - texto_musica.get_width() // 2, 460))
+
+        texto_salir = self.fuente_pequena.render("ESC: continuar |  Q: volver al menu", True, self.config.COLOR_PLATA)
+        pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA // 2 - texto_salir.get_width() // 2, 500))
 
     def dibujar_fin_ronda(self, pantalla, ganador, puntajes, mouse_pos=None, jugadores=None):
         """Dibuja la pantalla de fin de ronda con resultados.
