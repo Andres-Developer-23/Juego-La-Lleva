@@ -51,7 +51,9 @@ class Juego:
         pygame.display.set_caption("La Lleva - Juego Tradicional Colombiano")
         self.reloj = pygame.time.Clock()
         self.interfaz = Interfaz()
-        self.tactil = ControladorTactil(config.ANCHO_PANTALLA, config.ALTO_PANTALLA)
+        self.tactil = ControladorTactil(
+            config.ANCHO_PANTALLA, config.ALTO_PANTALLA,
+            visible=config.PLATAFORMA_WEB)
         self.configuracion = ConfiguracionService(config.SETTINGS_PATH)
         self.duracion_ronda = self.configuracion.obtener("duracion_ronda")
         self.puntaje_service = PuntajeService()

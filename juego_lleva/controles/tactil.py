@@ -6,22 +6,23 @@ import pygame
 class ControladorTactil:
     """Traduce los toques de pantalla en teclas virtuales y gestiona la pausa."""
 
-    def __init__(self, ancho, alto):
+    def __init__(self, ancho, alto, visible=False):
         """Inicializa las zonas táctiles del jugador 1 y 2.
 
         Args:
             ancho (int): Ancho lógico de la pantalla.
             alto (int): Alto lógico de la pantalla.
+            visible (bool): Mostrar las cruces desde el inicio (web).
         """
         self.ancho = ancho
         self.alto = alto
-        self.activo = False
+        self.activo = visible
         self.dedos = {}
         self.pausa_pedida = False
         self._fuente_cache = None
         self.zona_pausa = pygame.Rect(ancho - 170, 24, 140, 60)
-        self.zonas_j1 = self._crear_pad(190, 890, "J1")
-        self.zonas_j2 = self._crear_pad(ancho - 190, 890, "J2")
+        self.zonas_j1 = self._crear_pad(190, alto - 190, "J1")
+        self.zonas_j2 = self._crear_pad(ancho - 190, alto - 190, "J2")
 
     def _crear_pad(self, cx, cy, etiqueta):
         """Crea la cruz de control de un jugador.
