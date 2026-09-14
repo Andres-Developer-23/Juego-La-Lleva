@@ -18,6 +18,14 @@ class Config:
     VARIACION_IA = 40
     DURACION_RONDA = 60
 
+    DIFICULTADES = {
+        "facil": {"VELOCIDAD_IA": 200, "VARIACION_IA": 60, "FACTOR_IA_HUYENDO": 0.8},
+        "normal": {"VELOCIDAD_IA": 260, "VARIACION_IA": 40, "FACTOR_IA_HUYENDO": 0.9},
+        "dificil": {"VELOCIDAD_IA": 320, "VARIACION_IA": 25, "FACTOR_IA_HUYENDO": 1.0},
+    }
+
+    DURACIONES_RONDA = [30, 60, 90]
+
     # Colores principales
     COLOR_FONDO = (25, 25, 45)
     COLOR_JUGADOR_1 = (0, 180, 255)
@@ -53,3 +61,16 @@ class Config:
     FONDO = os.path.join(FONDOS_DIR, "campo.png")
     FONDO_MENU = os.path.join(FONDOS_DIR, "menu_bg.jpg")
     RANKING_PATH = os.path.join(ASSETS_DIR, "ranking.json")
+    SETTINGS_PATH = os.path.join(ASSETS_DIR, "settings.json")
+
+    # Power-ups
+    POWER_UP_TAMAÑO = 45
+    POWER_UP_VIDA_SEG = 7.0
+    POWER_UP_FRECUENCIA_SEG = 8.0
+    POWER_UP_MAX_ACTIVOS = 2
+    FACTOR_VELOCIDAD_POWER = 1.6
+    POWER_UP_EFECTO_VELOCIDAD_SEG = 5.0
+    POWER_UP_CONGELAR_SEG = 3.0
+
+    # Transiciones
+    DURACION_FUNDIDO_SEG = 0.35

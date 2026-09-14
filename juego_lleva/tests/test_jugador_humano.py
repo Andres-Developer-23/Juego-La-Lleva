@@ -48,6 +48,18 @@ class TestJugadorHumanoRealTime(unittest.TestCase):
         esperado = self.config.VELOCIDAD_JUGADOR * self.config.FACTOR_RALENTIZACION
         self.assertAlmostEqual(jugador.x, esperado, delta=1)
 
+    def test_factor_velocidad_multiplica(self):
+        jugador = JugadorHumano(0, 0, 0, self.teclas)
+        jugador.factor_velocidad = 2.0
+        jugador.mover(self._presionadas(self.teclas['derecha']), delta_tiempo=1.0)
+        self.assertAlmostEqual(jugador.x, self.config.VELOCIDAD_JUGADOR * 2, delta=1)
+
+    def test_atributos_por_defecto_de_estado(self):
+        jugador = JugadorHumano(0, 0, 0, self.teclas)
+        self.assertEqual(jugador.factor_velocidad, 1.0)
+        self.assertFalse(jugador.escudo)
+        self.assertEqual(jugador.congelado, 0.0)
+
     def test_limita_en_los_bordes(self):
         jugador = JugadorHumano(0, 0, 0, self.teclas)
         jugador.mover(self._presionadas(self.teclas['arriba'], self.teclas['izquierda']),

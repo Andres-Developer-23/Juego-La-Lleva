@@ -29,6 +29,8 @@ class ServicioAudio:
         self.sonido_fin = self._crear_fin_ronda()
         self.musica = self._generar_musica()
         self.canal_musica = pygame.mixer.Channel(1)
+        self.volumen_sfx = 1.0
+        self.volumen_musica = 1.0
 
     def _a_muestras(self, muestras):
         """Convierte una lista de muestras en un objeto pygame.mixer.Sound.
@@ -200,4 +202,23 @@ class ServicioAudio:
         """
         if not self.activo or sonido is None:
             return
+        pygame.mixer.Channel(0).set_volume(self.volumen_sfx)
         pygame.mixer.Channel(0).play(sonido)
+
+    def set_volumen_sfx(self, volumen):
+        """Establece el volumen de los efectos de sonido.
+
+        Args:
+            volumen (float): Volumen en el rango 0-1.
+        """
+        self.volumen_sfx = max(0.0, min(1.0, float(volumen)))
+
+    def set_volumen_musica(self, volumen):
+        """Establece el volumen de la música.
+
+        Args:
+            volumen (float): Volumen en el rango 0-1.
+        """
+        self.volumen_musica = max(0.0, min(1.0, float(volumen)))
+        if self.activo and self.canal_musica:
+            self.canal_musica.set_volume(self.volumen_musica)

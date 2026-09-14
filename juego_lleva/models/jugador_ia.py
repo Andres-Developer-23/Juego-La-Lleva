@@ -56,7 +56,7 @@ class JugadorIA(Jugador):
 
         dt = delta_tiempo if delta_tiempo is not None else 1.0 / self.config.FPS
 
-        velocidad = self.config.VELOCIDAD_IA * dt
+        velocidad = self.config.VELOCIDAD_IA * dt * self.factor_velocidad
         if en_zona_lenta:
             velocidad *= self.config.FACTOR_RALENTIZACION
         if self.es_lleva:

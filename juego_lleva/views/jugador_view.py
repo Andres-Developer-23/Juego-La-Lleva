@@ -62,6 +62,12 @@ class JugadorView:
 
         self._actualizar_particulas(tiempo_delta)
 
+        dx = jugador.x - jugador.posicion_anterior[0]
+        dy = jugador.y - jugador.posicion_anterior[1]
+        moviendo = math.sqrt(dx * dx + dy * dy) > 1
+        salto = abs(math.sin(self.tiempo_animacion * 8)) * 4 if moviendo else 0
+        pos_salto_y = jugador.y - int(salto)
+
         for p in self.particulas_rastro:
             alpha = int(180 * p['vida'])
             surface = pygame.Surface((int(p['tamaño'] * 2), int(p['tamaño'] * 2)), pygame.SRCALPHA)
@@ -85,36 +91,36 @@ class JugadorView:
                 pygame.draw.circle(superficie_pulso, (255, 50, 50, max(alpha_pulso, 10)),
                                  (int(radio_pulso * 2), int(radio_pulso * 2)), int(radio_pulso))
                 pantalla.blit(superficie_pulso, (jugador.x + self.config.TAMAÑO_JUGADOR // 2 - int(radio_pulso * 2),
-                                                 jugador.y + self.config.TAMAÑO_JUGADOR // 2 - int(radio_pulso * 2)))
+                                                 pos_salto_y + self.config.TAMAÑO_JUGADOR // 2 - int(radio_pulso * 2)))
 
             if sprite_actual:
-                pantalla.blit(sprite_actual, (jugador.x - 1, jugador.y - 1))
+                pantalla.blit(sprite_actual, (jugador.x - 1, pos_salto_y - 1))
             else:
                 pygame.draw.rect(pantalla, (180, 30, 30),
-                               (jugador.x - 3, jugador.y - 3, self.config.TAMAÑO_JUGADOR + 6, self.config.TAMAÑO_JUGADOR + 6),
+                               (jugador.x - 3, pos_salto_y - 3, self.config.TAMAÑO_JUGADOR + 6, self.config.TAMAÑO_JUGADOR + 6),
                                border_radius=9)
                 pygame.draw.rect(pantalla, self.config.COLOR_LLEVA,
-                               (jugador.x - 1, jugador.y - 1, self.config.TAMAÑO_JUGADOR + 2, self.config.TAMAÑO_JUGADOR + 2),
+                               (jugador.x - 1, pos_salto_y - 1, self.config.TAMAÑO_JUGADOR + 2, self.config.TAMAÑO_JUGADOR + 2),
                                border_radius=7)
                 pygame.draw.rect(pantalla, (255, 255, 255),
-                               (jugador.x + 1, jugador.y + 1, self.config.TAMAÑO_JUGADOR - 2, self.config.TAMAÑO_JUGADOR - 2),
+                               (jugador.x + 1, pos_salto_y + 1, self.config.TAMAÑO_JUGADOR - 2, self.config.TAMAÑO_JUGADOR - 2),
                                border_radius=5)
         else:
             if sprite_actual:
-                pantalla.blit(sprite_actual, (jugador.x, jugador.y))
+                pantalla.blit(sprite_actual, (jugador.x, pos_salto_y))
             else:
                 pygame.draw.rect(pantalla, (color_base[0] // 2, color_base[1] // 2, color_base[2] // 2),
-                               (jugador.x + 2, jugador.y + 2, self.config.TAMAÑO_JUGADOR, self.config.TAMAÑO_JUGADOR),
+                               (jugador.x + 2, pos_salto_y + 2, self.config.TAMAÑO_JUGADOR, self.config.TAMAÑO_JUGADOR),
                                border_radius=7)
                 pygame.draw.rect(pantalla, color_base,
-                               (jugador.x, jugador.y, self.config.TAMAÑO_JUGADOR, self.config.TAMAÑO_JUGADOR),
+                               (jugador.x, pos_salto_y, self.config.TAMAÑO_JUGADOR, self.config.TAMAÑO_JUGADOR),
                                border_radius=6)
                 surface_brillo = pygame.Surface((self.config.TAMAÑO_JUGADOR - 6, self.config.TAMAÑO_JUGADOR // 2 - 2), pygame.SRCALPHA)
                 surface_brillo.fill((255, 255, 255, 50))
                 pygame.draw.rect(surface_brillo, (255, 255, 255, 50),
                                (0, 0, self.config.TAMAÑO_JUGADOR - 6, self.config.TAMAÑO_JUGADOR // 2 - 2),
                                border_radius=4)
-                pantalla.blit(surface_brillo, (jugador.x + 3, jugador.y + 3))
+                pantalla.blit(surface_brillo, (jugador.x + 3, pos_salto_y + 3))
 
         fuente = pygame.font.SysFont(None, 24)
         texto = fuente.render(jugador.nombre, True, (255, 255, 255))

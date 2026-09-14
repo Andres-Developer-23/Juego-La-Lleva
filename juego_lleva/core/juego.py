@@ -7,6 +7,8 @@ from models.jugador_humano import JugadorHumano
 from models.jugador_ia import JugadorIA
 from servicios.audio import ServicioAudio
 from servicios.colision import ColisionService
+from servicios.configuracion import ConfiguracionService
+from servicios.power_up_service import PowerUpService
 from servicios.puntaje import PuntajeService
 from servicios.ranking import RankingService
 from servicios.ronda import RondaService
@@ -18,6 +20,7 @@ from core.gestor_modos import GestorModos
 from views.jugador_view import JugadorView
 from views.entorno_view import EntornoView
 from views.efecto_view import EfectoView
+from views.power_up_view import PowerUpView
 
 
 class Juego:
@@ -35,12 +38,19 @@ class Juego:
         pygame.display.set_caption("La Lleva - Juego Tradicional Colombiano")
         self.reloj = pygame.time.Clock()
         self.interfaz = Interfaz()
+        self.configuracion = ConfiguracionService(config.SETTINGS_PATH)
+        self.duracion_ronda = self.configuracion.obtener("duracion_ronda")
         self.puntaje_service = PuntajeService()
         self.servicio_colision = ColisionService()
         self.ranking_service = RankingService(config.RANKING_PATH)
         self.ronda_service = RondaService(self.puntaje_service)
+        self.power_up_service = PowerUpService(config)
         self.audio = ServicioAudio()
+        self.audio.set_volumen_sfx(self.configuracion.obtener("volumen_sfx"))
+        self.audio.set_volumen_musica(self.configuracion.obtener("volumen_musica"))
         self.musica_activa = True
+        if self.configuracion.obtener("pantalla_completa"):
+            self._alternar_pantalla_completa()
         self.modo = "dos_jugadores"
         self.gestor_modos = GestorModos()
         self.jugadores = []
@@ -48,9 +58,15 @@ class Juego:
         self.entorno_view = EntornoView()
         self.efecto_view = EfectoView()
         self.efectos = []
+        self.power_up_view = PowerUpView()
+        self.power_ups = []
+        self.power_up_timer = 0
+        self.efectos_activos = {}
         self.tiempo_ronda = 0
         self.estado = "menu"
+        self.opcion_activa = 0
         self.tiempo_inicio_lleva = 0
+        self.fade_alpha = 0
         self.mouse_pos = None
         self.click_realizado = False
         self.tiempo_anterior = 0
@@ -115,6 +131,8 @@ class Juego:
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_F11:
                     self._alternar_pantalla_completa()
+                    self.configuracion.establecer(
+                        "pantalla_completa", bool(pygame.display.get_fullscreen()))
                 elif evento.key == pygame.K_m and self.estado != "nombres":
                     self.musica_activa = not self.musica_activa
             self.eventos_pendientes.append(evento)
@@ -138,6 +156,16 @@ class Juego:
             self._pantalla_countdown(delta_tiempo)
         elif self.estado == "ranking":
             self._pantalla_ranking()
+        elif self.estado == "opciones":
+            self._pantalla_opciones()
+
+        if self.fade_alpha > 0:
+            fundido = pygame.Surface(
+                (self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA), pygame.SRCALPHA)
+            fundido.fill((0, 0, 0, int(self.fade_alpha)))
+            self.pantalla.blit(fundido, (0, 0))
+            self.fade_alpha = max(0, self.fade_alpha - delta_tiempo * 255 / self.config.DURACION_FUNDIDO_SEG)
+            pygame.display.flip()
 
     def _menu_principal(self):
         """Maneja la pantalla del menú principal."""
@@ -161,6 +189,10 @@ class Juego:
         elif accion == "ranking":
             self.estado = "ranking"
             self.audio.clic()
+        elif accion == "opciones":
+            self.estado = "opciones"
+            self.opcion_activa = 0
+            self.audio.clic()
         elif accion == "salir":
             pygame.quit()
             sys.exit()
@@ -178,6 +210,10 @@ class Juego:
                     self.nombres = ["J1", "J2"]
                     self.nombre_activo = 0
                     self.estado = "nombres"
+                    self.audio.clic()
+                elif evento.key == pygame.K_3:
+                    self.estado = "opciones"
+                    self.opcion_activa = 0
                     self.audio.clic()
 
         self.interfaz.dibujar_menu_principal(self.pantalla, self.mouse_pos)
@@ -273,7 +309,12 @@ class Juego:
         obstaculos = self.gestor_modos.entorno.obstaculos
         self.gestor_modos.entorno.actualizar(delta_tiempo)
 
+        self._actualizar_power_ups(delta_tiempo)
+        self._actualizar_efectos_activos(delta_tiempo)
+
         for jugador in self.jugadores:
+            if self._timers_efectos(jugador.id).get("congelar", 0) > 0:
+                continue
             en_zona = self.servicio_colision.jugador_en_zona_lenta(jugador, obstaculos)
             jugador.mover(teclas, en_zona, delta_tiempo)
 
@@ -288,7 +329,7 @@ class Juego:
             self.servicio_colision.separar_jugadores(j1, j2, self.config.TAMAÑO_JUGADOR)
 
         self.tiempo_ronda += delta_tiempo
-        if self.tiempo_ronda >= self.config.DURACION_RONDA:
+        if self.tiempo_ronda >= self.duracion_ronda:
             self._finalizar_ronda()
             return
 
@@ -298,6 +339,7 @@ class Juego:
             self.pantalla.fill(self.config.COLOR_FONDO)
 
         self.entorno_view.renderizar(self.pantalla, self.gestor_modos.entorno, self.tiempo_ronda)
+        self.power_up_view.renderizar(self.pantalla, self.power_ups, self.tiempo_ronda)
 
         for i, jugador in enumerate(self.jugadores):
             if i < len(self.jugadores_views):
@@ -307,10 +349,98 @@ class Juego:
         self.efecto_view.renderizar(self.pantalla, self.efectos)
 
         self.interfaz.dibujar_hud(self.pantalla, self.tiempo_ronda,
-                                  self.puntaje_service.tiempos_lleva, self.jugadores)
+                                  self.puntaje_service.tiempos_lleva, self.jugadores,
+                                  self.duracion_ronda, self.efectos_activos)
 
         pygame.display.flip()
         self.reloj.tick(self.config.FPS)
+
+    def _timers_efectos(self, id_jugador):
+        """Devuelve los temporizadores de efectos de un jugador.
+
+        Args:
+            id_jugador (int): ID del jugador.
+
+        Returns:
+            dict: Mapa tipo -> segundos restantes.
+        """
+        return self.efectos_activos.setdefault(id_jugador, {})
+
+    def _actualizar_efectos_activos(self, delta_tiempo):
+        """Decrementa los temporizadores de efectos y revierte los vencidos.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
+        vencidos = []
+        for id_jugador, timers in list(self.efectos_activos.items()):
+            for tipo in list(timers):
+                timers[tipo] -= delta_tiempo
+                if timers[tipo] <= 0:
+                    vencidos.append((id_jugador, tipo))
+                    del timers[tipo]
+            if not timers:
+                del self.efectos_activos[id_jugador]
+
+        for id_jugador, tipo in vencidos:
+            if tipo == "velocidad":
+                jugador = next((j for j in self.jugadores if j.id == id_jugador), None)
+                if jugador:
+                    jugador.factor_velocidad = 1.0
+
+    def _actualizar_power_ups(self, delta_tiempo):
+        """Genera, envejece y recolecta power-ups durante la ronda.
+
+        Args:
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+        """
+        self.power_up_timer += delta_tiempo
+        if self.power_up_timer >= self.config.POWER_UP_FRECUENCIA_SEG:
+            self.power_up_timer = 0
+            nuevo = self.power_up_service.crear(self.jugadores, self.power_ups)
+            if nuevo:
+                self.power_ups.append(nuevo)
+
+        for pu in self.power_ups:
+            pu.vida -= delta_tiempo
+
+        for jugador in self.jugadores:
+            rect_jugador = jugador.obtener_rectangulo()
+            for pu in list(self.power_ups):
+                if rect_jugador.colliderect(pu.obtener_rectangulo()):
+                    self._recoger_power_up(jugador, pu)
+                    self.power_ups.remove(pu)
+
+        self.power_ups = [pu for pu in self.power_ups if not pu.expirado()]
+
+    def _recoger_power_up(self, jugador, power_up):
+        """Aplica el efecto de un power-up recogido.
+
+        Args:
+            jugador: Jugador que recogió el power-up.
+            power_up: Power-up recogido.
+        """
+        rival = next((j for j in self.jugadores if j.id != jugador.id), None)
+        efecto = self.power_up_service.efecto(jugador, rival, power_up.tipo)
+        if not efecto:
+            return
+        id_objetivo, tipo, duracion = efecto
+        objetivo = next((j for j in self.jugadores if j.id == id_objetivo), None)
+        if objetivo is None:
+            return
+
+        if tipo == "velocidad":
+            objetivo.factor_velocidad = self.config.FACTOR_VELOCIDAD_POWER
+            self._timers_efectos(id_objetivo)["velocidad"] = duracion
+        elif tipo == "congelar":
+            self._timers_efectos(id_objetivo)["congelar"] = duracion
+        elif tipo == "escudo":
+            objetivo.escudo = True
+
+        color = self.power_up_view.COLORES.get(power_up.tipo, (255, 215, 0))
+        if len(self.efectos) < 6:
+            self.efectos.append(self.efecto_view.crear_toque(power_up.x, power_up.y, color, 10))
+        self.audio.clic()
 
     def _pantalla_pausa(self):
         """Maneja la pantalla de pausa durante la partida."""
@@ -335,9 +465,29 @@ class Juego:
             j2: Segundo jugador involucrado.
         """
         if j1.es_lleva:
-            self._transferir_lleva(j1, j2)
+            if getattr(j2, "escudo", False):
+                self._romper_escudo(j2, j1)
+            else:
+                self._transferir_lleva(j1, j2)
         elif j2.es_lleva:
-            self._transferir_lleva(j2, j1)
+            if getattr(j1, "escudo", False):
+                self._romper_escudo(j1, j2)
+            else:
+                self._transferir_lleva(j2, j1)
+
+    def _romper_escudo(self, protegido, llevador):
+        """Consume el escudo de un jugador y bloquea el toque.
+
+        Args:
+            protegido: Jugador que poseía el escudo.
+            llevador: Jugador que intentó tocarlo (sigue siendo 'La Lleva').
+        """
+        protegido.escudo = False
+        self.audio.clic()
+        x1, y1 = llevador.obtener_posicion()
+        x2, y2 = protegido.obtener_posicion()
+        if len(self.efectos) < 6:
+            self.efectos.append(self.efecto_view.crear_anillo((x1 + x2) / 2, (y1 + y2) / 2, (100, 150, 255)))
 
     def _transferir_lleva(self, quien_tiene_lleva, quien_recibe):
         """Transfiere el rol de 'La Lleva' al jugador tocado.
@@ -432,18 +582,97 @@ class Juego:
         self.interfaz.dibujar_ranking(self.pantalla, entradas, self.mouse_pos)
         pygame.display.flip()
 
+    def _pantalla_opciones(self):
+        """Maneja la pantalla de opciones configurables."""
+        for evento in self.eventos_pendientes:
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_ESCAPE:
+                    self._volver_al_menu()
+                    return
+                elif evento.key == pygame.K_UP:
+                    self.opcion_activa = (self.opcion_activa - 1) % 5
+                elif evento.key == pygame.K_DOWN:
+                    self.opcion_activa = (self.opcion_activa + 1) % 5
+                elif evento.key in (pygame.K_LEFT, pygame.K_RIGHT):
+                    self._cambiar_opcion(self.opcion_activa, evento.key == pygame.K_RIGHT)
+                elif evento.key == pygame.K_RETURN:
+                    self._cambiar_opcion(self.opcion_activa, True)
+
+        accion = self.interfaz.obtener_accion_opciones(self.mouse_pos, self.click_realizado)
+        if accion:
+            if accion[0] == "volver":
+                self._volver_al_menu()
+                return
+            if accion[0] == "cambiar":
+                _, clave, direccion = accion
+                self._aplicar_opcion(clave, direccion)
+
+        self.interfaz.dibujar_opciones(self.pantalla, self.configuracion,
+                                        self.opcion_activa, self.mouse_pos)
+        pygame.display.flip()
+
+    def _cambiar_opcion(self, indice, aumentar):
+        """Cambia el valor de la opción seleccionada con el teclado.
+
+        Args:
+            indice (int): Índice de la fila seleccionada.
+            aumentar (bool): True para incrementar, False para decrementar.
+        """
+        claves = ["duracion_ronda", "dificultad_ia", "volumen_musica", "volumen_sfx", "pantalla_completa"]
+        if 0 <= indice < len(claves):
+            self._aplicar_opcion(claves[indice], 1 if aumentar else -1)
+
+    def _aplicar_opcion(self, clave, direccion):
+        """Aplica un cambio de opción y sus efectos colaterales.
+
+        Args:
+            clave (str): Nombre de la clave de configuración.
+            direccion (int): Paso (1 o -1).
+        """
+        self.configuracion.siguiente(clave, direccion)
+        if clave == "duracion_ronda":
+            self.duracion_ronda = self.configuracion.obtener("duracion_ronda")
+        elif clave == "volumen_musica":
+            self.audio.set_volumen_musica(self.configuracion.obtener("volumen_musica"))
+            if self.musica_activa:
+                self.audio.set_volumen_musica(self.configuracion.obtener("volumen_musica"))
+        elif clave == "volumen_sfx":
+            self.audio.set_volumen_sfx(self.configuracion.obtener("volumen_sfx"))
+        elif clave == "pantalla_completa":
+            self._alternar_pantalla_completa()
+        self.audio.clic()
+
     def _iniciar_partida(self):
         """Prepara y arranca una partida, sin importar desde qué pantalla se invoque."""
         if self.modo == "un_jugador":
             self.gestor_modos.iniciar_un_jugador(self, self.nombres[0] if self.nombres else "J1")
         else:
             self.gestor_modos.iniciar_multijugador(self, self.nombres)
+        self._aplicar_dificultad_ia()
         self._ranking_registrado = False
         self.efectos.clear()
+        self.power_ups.clear()
+        self.power_up_timer = 0
+        self.efectos_activos.clear()
+        for jugador in self.jugadores:
+            jugador.escudo = False
+            jugador.factor_velocidad = 1.0
+            jugador.congelado = 0.0
         self.estado = "countdown"
         self.countdown_valor = 3
         self.countdown_timer = 0
+        self.fade_alpha = 255
         self.audio.beep()
+
+    def _aplicar_dificultad_ia(self):
+        """Aplica la dificultad seleccionada al jugador controlado por IA."""
+        nivel = self.configuracion.obtener("dificultad_ia")
+        parametros = self.config.DIFICULTADES.get(nivel, self.config.DIFICULTADES["normal"])
+        for jugador in self.jugadores:
+            if isinstance(jugador, JugadorIA):
+                jugador.config.VELOCIDAD_IA = parametros["VELOCIDAD_IA"]
+                jugador.config.VARIACION_IA = parametros["VARIACION_IA"]
+                jugador.config.FACTOR_IA_HUYENDO = parametros["FACTOR_IA_HUYENDO"]
 
     def _volver_al_menu(self):
         """Vuelve al menú principal limpiando el estado de la partida."""
@@ -453,6 +682,9 @@ class Juego:
         self.tiempo_ronda = 0
         self.tiempo_inicio_lleva = 0
         self.efectos.clear()
+        self.power_ups.clear()
+        self.efectos_activos.clear()
+        self.fade_alpha = 255
         self._ranking_registrado = False
 
     def crear_jugador(self, x, y, id_jugador, teclas=None, nombre=None):

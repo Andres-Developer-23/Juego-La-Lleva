@@ -24,6 +24,9 @@ class Jugador(Movible):
         self._es_lleva = False
         self.config = Config()
         self.posicion_anterior = (x, y)
+        self.factor_velocidad = 1.0
+        self.escudo = False
+        self.congelado = 0.0
 
     def obtener_posicion(self):
         """Obtiene la posición actual del jugador.

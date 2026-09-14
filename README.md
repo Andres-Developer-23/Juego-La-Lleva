@@ -4,17 +4,20 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 
 ## Características
 
-- Modo 1 jugador contra la computadora (IA equilibrada)
+- Modo 1 jugador contra la computadora (IA equilibrada y dificultad ajustable)
 - Multijugador local (2 jugadores)
 - Movimiento por tiempo real (velocidad en píxeles por segundo)
 - Lleva inicial aleatoria
 - Obstáculos: cajas (rebote) y zonas lentas
-- Efectos visuales al tocar (anillo + partículas)
+- Power-ups: velocidad, escudo y congelar al rival
+- Efectos visuales al tocar (anillo + partículas) y que se recogen power-ups
+- Duración de ronda configurable (30 / 60 / 90 s)
 - Ranking de mejores tiempos con persistencia
-- Interfaz animada con partículas
-- Sonido y música generados proceduralmente
+- Interfaz animada con partículas y transiciones de pantalla
+- Sonido y música generados proceduralmente con volumen ajustable
 - Pausa durante la partida
 - Modo ventana / pantalla completa
+- Preferencias guardadas en `assets/settings.json`
 
 ## Instalación
 
@@ -46,9 +49,10 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 
 | Acción | Control |
 |--------|---------|
-| Menú | 1: Un Jugador, 2: Multijugador |
+| Menú | 1: Un Jugador, 2: Multijugador, 3: Opciones |
 | Moverse (J1) | W A S D |
 | Moverse (J2) | Flechas |
+| Configurar | Flechas entre opciones, Izq/Der para cambiar |
 | Pausar / continuar | P o ESC |
 | Volver al menú desde pausa | Q |
 | Música | M |
@@ -61,8 +65,20 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 3. La lleva inicial se elige al azar
 4. El jugador con la lleva (rojo) debe tocar al otro
 5. Al ser tocado, ese jugador pasa a ser la lleva
-6. Después de 60 segundos, gana quien menos tiempo fue la lleva
-7. Los tiempos se registran en el ranking
+6. Recoge power-ups: velocidad (verde), escudo (azul, bloquea un toque) y congelar (cian, inmoviliza al rival)
+7. Cuando expira el tiempo, gana quien menos tiempo fue la lleva
+8. Los tiempos se registran en el ranking
+
+## Opciones
+
+La pantalla de Opciones (botón del menú o tecla 3) permite configurar:
+
+- **Duración de la ronda**: 30, 60 o 90 segundos
+- **Dificultad de la IA**: Fácil, Normal o Difícil
+- **Volumen de la música y de los efectos**
+- **Pantalla completa** (también con F11)
+
+Las preferencias se guardan automáticamente en `assets/settings.json`.
 
 ## Estructura del Proyecto
 
@@ -88,7 +104,8 @@ python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
 Cubre puntajes, reglas de la ronda (regla clásica), ranking con persistencia,
-colisiones, movimiento de la IA y síntesis de audio.
+colisiones, movimiento del jugador y de la IA (por tiempo real), power-ups,
+configuración persistente y síntesis de audio.
 
 ## Requisitos
 

@@ -32,7 +32,7 @@ class JugadorHumano(Jugador):
             return
 
         dt = delta_tiempo if delta_tiempo is not None else 1.0 / self.config.FPS
-        velocidad = self.config.VELOCIDAD_JUGADOR * dt
+        velocidad = self.config.VELOCIDAD_JUGADOR * dt * self.factor_velocidad
         if en_zona_lenta:
             velocidad *= self.config.FACTOR_RALENTIZACION
 

@@ -156,7 +156,26 @@ class Interfaz:
         """
         return x <= pos[0] <= x + ancho and y <= pos[1] <= y + alto
 
-    def dibujar_hud(self, pantalla, tiempo, puntajes, jugadores):
+    def _describir_efectos(self, tipos, jugador):
+        """Convierte los efectos activos de un jugador en un texto corto.
+
+        Args:
+            tipos (list): Efectos activos (tipos).
+            jugador: Jugador al que pertenecen los efectos.
+
+        Returns:
+            str: Descripción de los efectos, o cadena vacía si no hay ninguno.
+        """
+        nombres = []
+        if "velocidad" in tipos:
+            nombres.append("VELOCIDAD")
+        if getattr(jugador, "escudo", False):
+            nombres.append("ESCUDO")
+        if "congelar" in tipos:
+            nombres.append("CONGELADO")
+        return " + ".join(nombres)
+
+    def dibujar_hud(self, pantalla, tiempo, puntajes, jugadores, duracion=None, efectos=None):
         """Dibuja el heads-up display con información del juego.
 
         Args:
@@ -164,11 +183,14 @@ class Interfaz:
             tiempo (float): Tiempo transcurrido de la ronda.
             puntajes (dict): Diccionario con tiempos de cada jugador.
             jugadores (list): Lista de jugadores activos.
+            duracion (float, optional): Duración de la ronda. Por defecto la configurada.
+            efectos (dict, optional): Efectos activos por jugador (id -> lista de tipos).
         """
         self.dibujar_panel(pantalla, 0, 0, self.config.ANCHO_PANTALLA, 70, 220)
 
-        tiempo_restante = max(0, self.config.DURACION_RONDA - tiempo)
-        porcentaje_tiempo = tiempo_restante / self.config.DURACION_RONDA
+        duracion_total = duracion if duracion is not None else self.config.DURACION_RONDA
+        tiempo_restante = max(0, duracion_total - tiempo)
+        porcentaje_tiempo = min(1.0, tiempo_restante / duracion_total) if duracion_total else 0
 
         barra_x = 20
         barra_y = 12
@@ -209,6 +231,12 @@ class Interfaz:
             tiempo_j = puntajes.get(jugador.id, 0)
             texto_t = self.fuente_pequena.render(f"({int(tiempo_j)}s)", True, self.config.COLOR_PLATA)
             pantalla.blit(texto_t, (x_jugador + 24 + texto_j.get_width() + 5, 22))
+
+            if efectos and efectos.get(jugador.id):
+                etiqueta_efectos = self._describir_efectos(efectos.get(jugador.id), jugador)
+                if etiqueta_efectos:
+                    texto_efecto = self.fuente_pequena.render(etiqueta_efectos, True, self.config.COLOR_DORADO)
+                    pantalla.blit(texto_efecto, (x_jugador + 24, 42))
 
             x_jugador += 240
 
@@ -257,24 +285,25 @@ class Interfaz:
         texto_sub = self.fuente_subtitulo.render("Juego Tradicional Colombiano", True, self.config.COLOR_PLATA)
         pantalla.blit(texto_sub, (self.config.ANCHO_PANTALLA // 2 - texto_sub.get_width() // 2, 195))
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 190, 245, 380, 425, 160)
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 190, 240, 380, 385, 160)
 
         botones = [
-            ("Un Jugador", 270),
-            ("Multijugador", 345),
-            ("Como Jugar", 420),
-            ("Ranking", 495),
-            ("Salir", 570)
+            ("Un Jugador", 260),
+            ("Multijugador", 315),
+            ("Como Jugar", 370),
+            ("Ranking", 425),
+            ("Opciones", 480),
+            ("Salir", 535)
         ]
 
         for texto_boton, y in botones:
-            hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 50)
-            self.dibujar_boton(pantalla, texto_boton, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 50, hover)
+            hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 48)
+            self.dibujar_boton(pantalla, texto_boton, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 48, hover)
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 170, 700, 340, 70, 130)
-        controles = "J1: WASD   |   J2: Flechas   |   F11: Pantalla"
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 195, 665, 390, 75, 130)
+        controles = "J1: WASD   |   J2: Flechas   |   3: Opciones"
         texto_ctrl = self.fuente_pequena.render(controles, True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_ctrl, (self.config.ANCHO_PANTALLA // 2 - texto_ctrl.get_width() // 2, 724))
+        pantalla.blit(texto_ctrl, (self.config.ANCHO_PANTALLA // 2 - texto_ctrl.get_width() // 2, 690))
 
     def dibujar_pantalla_nombres(self, pantalla, nombres, nombre_activo, mouse_pos=None, cantidad=None):
         """Dibuja la pantalla de ingreso de nombres.
@@ -343,15 +372,113 @@ class Interfaz:
         if not click:
             return None
         botones = [
-            (self.config.ANCHO_PANTALLA // 2 - 140, 270, 280, 50, "un_jugador"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 345, 280, 50, "jugar"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 420, 280, 50, "ayuda"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 495, 280, 50, "ranking"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 570, 280, 50, "salir")
+            (self.config.ANCHO_PANTALLA // 2 - 140, 260, 280, 48, "un_jugador"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 315, 280, 48, "jugar"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 370, 280, 48, "ayuda"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 425, 280, 48, "ranking"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 480, 280, 48, "opciones"),
+            (self.config.ANCHO_PANTALLA // 2 - 140, 535, 280, 48, "salir")
         ]
         for x, y, ancho, alto, accion in botones:
             if self._dentro_boton(mouse_pos, x, y, ancho, alto):
                 return accion
+        return None
+
+    def dibujar_opciones(self, pantalla, configuraciones, opcion_activa=None, mouse_pos=None):
+        """Dibuja la pantalla de opciones configurables del juego.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            configuraciones: Objeto con claves/valores configurables.
+            opcion_activa (int, optional): Índice de la fila seleccionada con teclado.
+            mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+        """
+        pantalla.fill(self.config.COLOR_FONDO)
+        self.dibujar_particulas_menu(pantalla)
+
+        titulo = self.fuente_grande.render("Opciones", True, self.config.COLOR_DORADO)
+        pantalla.blit(titulo, (self.config.ANCHO_PANTALLA // 2 - titulo.get_width() // 2, 30))
+
+        texto_hint = self.fuente_pequena.render(
+            "Flechas: cambiar seleccion y valor   |   ESC: volver", True, self.config.COLOR_PLATA)
+        pantalla.blit(texto_hint, (self.config.ANCHO_PANTALLA // 2 - texto_hint.get_width() // 2, 95))
+
+        filas = [
+            ("duracion_ronda", "Duracion"),
+            ("dificultad_ia", "Dificultad"),
+            ("volumen_musica", "Musica"),
+            ("volumen_sfx", "Efectos"),
+            ("pantalla_completa", "Pantalla completa"),
+        ]
+
+        cx = self.config.ANCHO_PANTALLA // 2
+        self.dibujar_panel(pantalla, cx - 310, 130, 620, 430, 180)
+
+        for i, (clave, etiqueta) in enumerate(filas):
+            y = 155 + i * 80
+            activa = (opcion_activa == i)
+            sobre_fila = mouse_pos and 155 + i * 80 <= mouse_pos[1] <= 155 + i * 80 + 70 and abs(mouse_pos[0] - cx) < 270
+
+            pygame.draw.rect(pantalla, (*self.config.COLOR_BOTON, 200),
+                           ((cx - 260, y, 520, 70)), border_radius=10)
+            if activa or sobre_fila:
+                pygame.draw.rect(pantalla, self.config.COLOR_DORADO, (cx - 260, y, 520, 70), 2, border_radius=10)
+
+            texto_label = self.fuente_boton.render(etiqueta, True, (255, 255, 255))
+            pantalla.blit(texto_label, (cx - 240, y + 20))
+
+            self.dibujar_boton(pantalla, "-", cx - 90, y + 15, 40, 40)
+            valor = self._formatear_valor_opcion(clave, configuraciones.obtener(clave))
+            texto_valor = self.fuente_boton.render(valor, True, self.config.COLOR_DORADO)
+            pantalla.blit(texto_valor, (cx + 5 - texto_valor.get_width() // 2, y + 22))
+
+            self.dibujar_boton(pantalla, "+", cx + 50, y + 15, 40, 40)
+
+        hover_volver = mouse_pos and self._dentro_boton(mouse_pos, cx - 100, 610, 200, 50)
+        self.dibujar_boton(pantalla, "Volver", cx - 100, 610, 200, 50, hover_volver)
+
+    def _formatear_valor_opcion(self, clave, valor):
+        """Formatea el valor de una opción para mostrarlo en pantalla.
+
+        Args:
+            clave (str): Nombre de la clave de configuración.
+            valor: Valor actual.
+
+        Returns:
+            str: Texto legible del valor.
+        """
+        if clave == "duracion_ronda":
+            return f"{valor}s"
+        if clave == "dificultad_ia":
+            return {"facil": "Facil", "normal": "Normal", "dificil": "Dificil"}.get(valor, str(valor))
+        if clave in ("volumen_musica", "volumen_sfx"):
+            return f"{int(round(valor * 100))}%"
+        if clave == "pantalla_completa":
+            return "SI" if valor else "NO"
+        return str(valor)
+
+    def obtener_accion_opciones(self, mouse_pos, click):
+        """Obtiene la acción de la pantalla de opciones según el mouse.
+
+        Args:
+            mouse_pos (tuple): Posición del mouse.
+            click (bool): True si se hizo click.
+
+        Returns:
+            tuple: ("cambiar", clave, direccion), ("volver",) o None.
+        """
+        if not click:
+            return None
+        cx = self.config.ANCHO_PANTALLA // 2
+        if self._dentro_boton(mouse_pos, cx - 100, 610, 200, 50):
+            return ("volver",)
+        filas = ["duracion_ronda", "dificultad_ia", "volumen_musica", "volumen_sfx", "pantalla_completa"]
+        for i, clave in enumerate(filas):
+            y = 155 + i * 80
+            if self._dentro_boton(mouse_pos, cx - 90, y + 15, 40, 40):
+                return ("cambiar", clave, -1)
+            if self._dentro_boton(mouse_pos, cx + 50, y + 15, 40, 40):
+                return ("cambiar", clave, 1)
         return None
 
     def dibujar_ayuda(self, pantalla, mouse_pos=None):
@@ -371,26 +498,27 @@ class Interfaz:
 
         secciones = [
             ("Objetivo:", self.config.COLOR_DORADO, 100),
-            ("Ser el ultimo en ser tocado cuando expira el tiempo (60s).", (255, 255, 255), 130),
-            ("", None, 155),
-            ("Reglas:", self.config.COLOR_DORADO, 165),
-            ("- La lleva inicial se elige al azar.", (255, 255, 255), 195),
-            ("- Al tocar, el tocado pasa a ser 'La Lleva'.", (255, 255, 255), 220),
-            ("- Gana quien menos tiempo sea 'La Lleva'.", (255, 255, 255), 245),
-            ("", None, 270),
-            ("Controles:", self.config.COLOR_DORADO, 280),
-            ("J1: W (arriba), A (izq), S (abajo), D (der)", self.config.COLOR_JUGADOR_1, 310),
-            ("J2: Flechas del teclado", self.config.COLOR_JUGADOR_2, 335),
-            ("P o ESC: Pausa | F11: Pantalla completa | M: Musica", self.config.COLOR_PLATA, 360),
-            ("Q: Volver al menu (en pausa) | 1 y 2: Modos de juego", self.config.COLOR_PLATA, 385),
-            ("", None, 410),
-            ("Obstaculos:", self.config.COLOR_DORADO, 420),
-            ("- Cajas (marrones): rebote al chocar.", (255, 255, 255), 450),
-            ("- Zonas (azules): ralentizan el movimiento.", (255, 255, 255), 475),
-            ("", None, 500),
-            ("Ranking:", self.config.COLOR_DORADO, 510),
-            ("- Al finalizar una ronda, tu tiempo se registra.", (255, 255, 255), 540),
-            ("- Consulta los mejores tiempos desde el menu.", (255, 255, 255), 565),
+            ("Ser el ultimo en ser tocado cuando expira el tiempo.", (255, 255, 255), 130),
+            ("", None, 152),
+            ("Reglas:", self.config.COLOR_DORADO, 162),
+            ("- La lleva inicial se elige al azar.", (255, 255, 255), 192),
+            ("- Al tocar, el tocado pasa a ser 'La Lleva'.", (255, 255, 255), 217),
+            ("- Gana quien menos tiempo sea 'La Lleva'.", (255, 255, 255), 242),
+            ("", None, 264),
+            ("Controles:", self.config.COLOR_DORADO, 274),
+            ("J1: W (arriba), A (izq), S (abajo), D (der)", self.config.COLOR_JUGADOR_1, 304),
+            ("J2: Flechas del teclado", self.config.COLOR_JUGADOR_2, 329),
+            ("P o ESC: Pausa | F11: Pantalla | M: Musica", self.config.COLOR_PLATA, 354),
+            ("Q: Menu (en pausa) | 1, 2 y 3: Modos y opciones", self.config.COLOR_PLATA, 379),
+            ("", None, 406),
+            ("Obstaculos y Power-ups:", self.config.COLOR_DORADO, 416),
+            ("- Cajas (marrones): rebote al chocar.", (255, 255, 255), 446),
+            ("- Zonas (azules): ralentizan el movimiento.", (255, 255, 255), 471),
+            ("- Verde: velocidad | Azul: escudo | Cian: congelar", (255, 255, 255), 496),
+            ("", None, 521),
+            ("Ranking:", self.config.COLOR_DORADO, 531),
+            ("- Tu tiempo se registra al finalizar la ronda.", (255, 255, 255), 561),
+            ("- Consulta los mejores tiempos desde el menu.", (255, 255, 255), 586),
         ]
 
         for texto, color, y in secciones:

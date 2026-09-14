@@ -1,0 +1,7 @@
+{
+  "duracion_ronda": 60,
+  "dificultad_ia": "normal",
+  "volumen_musica": 0.8,
+  "volumen_sfx": 0.8,
+  "pantalla_completa": false
+}
