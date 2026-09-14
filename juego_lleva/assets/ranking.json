@@ -43,5 +43,23 @@
       "J1": 59.66,
       "IA": 0.36
     }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-13 21:29",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-13 21:30",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
   }
 ]

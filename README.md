@@ -14,6 +14,8 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 - Duración de ronda configurable (30 / 60 / 90 s)
 - Ranking de mejores tiempos con persistencia
 - Interfaz animada con partículas y transiciones de pantalla
+- Notificaciones de eventos durante la partida (toasts)
+- Menú navegable por teclado y mouse
 - Sonido y música generados proceduralmente con volumen ajustable
 - Pausa durante la partida
 - Modo ventana / pantalla completa
@@ -49,12 +51,13 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 
 | Acción | Control |
 |--------|---------|
-| Menú | 1: Un Jugador, 2: Multijugador, 3: Opciones |
+| Menú | Flechas + Enter, o 1, 2, 3 (atajos) |
 | Moverse (J1) | W A S D |
 | Moverse (J2) | Flechas |
 | Configurar | Flechas entre opciones, Izq/Der para cambiar |
 | Pausar / continuar | P o ESC |
 | Volver al menú desde pausa | Q |
+| Revancha / menú | ENTER o R / ESC |
 | Música | M |
 | Pantalla completa | F11 |
 

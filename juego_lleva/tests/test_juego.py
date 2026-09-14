@@ -1,6 +1,7 @@
 """Prueba de integración de la regla clásica a través de Juego (headless)."""
 
 import os
+import tempfile
 import unittest
 
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
@@ -21,6 +22,11 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
 
     def setUp(self):
         self.juego = Juego(Config())
+        self.dir_tmp = tempfile.TemporaryDirectory()
+        self.juego.configuracion.ruta = os.path.join(self.dir_tmp.name, "settings.json")
+
+    def tearDown(self):
+        self.dir_tmp.cleanup()
 
     def test_transferencia_y_ganador(self):
         juego = self.juego
@@ -107,6 +113,49 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         juego._aplicar_dificultad_ia()
         ia = juego.jugadores[1]
         self.assertEqual(ia.config.VELOCIDAD_IA, Config.DIFICULTADES["dificil"]["VELOCIDAD_IA"])
+
+    def test_normalizar_nombres_vacios(self):
+        juego = self.juego
+        juego.nombres = ["   ", ""]
+        juego._normalizar_nombres()
+        self.assertEqual(juego.nombres, ["J1", "J2"])
+
+    def test_normalizar_nombres_recorta_maximo(self):
+        juego = self.juego
+        juego.nombres = ["12345678901234"]
+        juego._normalizar_nombres()
+        self.assertEqual(len(juego.nombres[0]), 12)
+
+    def test_toast_se_agrega_y_expira(self):
+        juego = self.juego
+        juego._mostrar_toast("Hola", (255, 0, 0))
+        self.assertEqual(len(juego.toasts), 1)
+        self.assertEqual(juego.toasts[0]['texto'], "Hola")
+        juego.toasts = juego.interfaz.actualizar_toasts(juego.toasts, 3.0)
+        self.assertEqual(len(juego.toasts), 0)
+
+    def test_menu_teclado_seleccion_y_enter(self):
+        juego = self.juego
+        self.assertEqual(juego.opcion_menu, 0)
+        juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN)]
+        juego._menu_principal()
+        self.assertEqual(juego.opcion_menu, 1)
+        juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN)]
+        juego._menu_principal()
+        self.assertEqual(juego.opcion_menu, 2)
+        juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)]
+        juego._menu_principal()
+        self.assertEqual(juego.estado, "ayuda")
+
+    def test_fin_ronda_tecla_r_revancha(self):
+        juego = self.juego
+        juego.gestor_modos.iniciar_multijugador(juego, ["Ana", "Beto"])
+        juego.tiempo_ronda = 60
+        juego._finalizar_ronda()
+        self.assertEqual(juego.estado, "fin_ronda")
+        juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r)]
+        juego._pantalla_fin_ronda()
+        self.assertEqual(juego.estado, "countdown")
 
 
 if __name__ == '__main__':

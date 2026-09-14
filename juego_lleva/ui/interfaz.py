@@ -9,6 +9,8 @@ from core.config import Config
 class Interfaz:
     """Clase que gestiona toda la interfaz de usuario del juego."""
 
+    acciones_menu = ["un_jugador", "jugar", "ayuda", "ranking", "opciones", "salir"]
+
     def __init__(self):
         """Inicializa la interfaz con fuentes y partículas decorativas."""
         self.config = Config()
@@ -175,6 +177,55 @@ class Interfaz:
             nombres.append("CONGELADO")
         return " + ".join(nombres)
 
+    def actualizar_toasts(self, toasts, delta_tiempo):
+        """Actualiza el tiempo de vida de las notificaciones en pantalla.
+
+        Args:
+            toasts (list): Lista de notificaciones activas.
+            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
+
+        Returns:
+            list: Notificaciones que siguen visibles.
+        """
+        vivos = []
+        for t in toasts:
+            t['tiempo'] += delta_tiempo
+            if t['tiempo'] < t['duracion']:
+                vivos.append(t)
+        return vivos
+
+    def dibujar_toasts(self, pantalla, toasts):
+        """Dibuja las notificaciones de eventos (toasts) sobre el campo.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            toasts (list): Lista de notificaciones activas.
+        """
+        y = 90
+        for t in toasts:
+            progreso = t['tiempo'] / t['duracion']
+            if progreso < 0.2:
+                alpha = int(255 * progreso / 0.2)
+            elif progreso > 0.75:
+                alpha = int(255 * (1 - progreso) / 0.25)
+            else:
+                alpha = 255
+
+            texto = self.fuente_boton.render(t['texto'], True, t.get('color', (255, 255, 255)))
+            ancho_panel = texto.get_width() + 36
+            alto_panel = texto.get_height() + 18
+            panel = pygame.Surface((ancho_panel, alto_panel), pygame.SRCALPHA)
+            pygame.draw.rect(panel, (30, 30, 50, 200), (0, 0, ancho_panel, alto_panel), border_radius=8)
+            pygame.draw.rect(panel, (255, 255, 255, 120), (0, 0, ancho_panel, alto_panel), 1, border_radius=8)
+            panel.set_alpha(alpha)
+            x = self.config.ANCHO_PANTALLA // 2 - ancho_panel // 2
+            pantalla.blit(panel, (x, y))
+
+            texto_alpha = texto.copy()
+            texto_alpha.set_alpha(alpha)
+            pantalla.blit(texto_alpha, (x + 18, y + 9))
+            y += alto_panel + 14
+
     def dibujar_hud(self, pantalla, tiempo, puntajes, jugadores, duracion=None, efectos=None):
         """Dibuja el heads-up display con información del juego.
 
@@ -243,12 +294,13 @@ class Interfaz:
         texto_salir = self.fuente_pequena.render("P: Pausa", True, self.config.COLOR_PLATA)
         pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA - 80, 28))
 
-    def dibujar_menu_principal(self, pantalla, mouse_pos=None):
+    def dibujar_menu_principal(self, pantalla, mouse_pos=None, seleccion=None):
         """Dibuja el menú principal del juego.
 
         Args:
             pantalla: Superficie de pygame donde dibujar.
             mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+            seleccion (int, optional): Índice de la opción seleccionada con teclado.
         """
         try:
             fondo_menu = pygame.image.load(self.config.FONDO_MENU).convert()
@@ -296,12 +348,15 @@ class Interfaz:
             ("Salir", 535)
         ]
 
-        for texto_boton, y in botones:
+        for i, (texto_boton, y) in enumerate(botones):
             hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 48)
             self.dibujar_boton(pantalla, texto_boton, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 48, hover)
+            if seleccion == i:
+                pygame.draw.rect(pantalla, self.config.COLOR_DORADO,
+                               (self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 48), 2, border_radius=12)
 
         self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 195, 665, 390, 75, 130)
-        controles = "J1: WASD   |   J2: Flechas   |   3: Opciones"
+        controles = "Flechas + Enter: navegar   |   1, 2, 3: atajos"
         texto_ctrl = self.fuente_pequena.render(controles, True, self.config.COLOR_PLATA)
         pantalla.blit(texto_ctrl, (self.config.ANCHO_PANTALLA // 2 - texto_ctrl.get_width() // 2, 690))
 
@@ -622,6 +677,10 @@ class Interfaz:
 
         self.dibujar_boton(pantalla, "Revancha", self.config.ANCHO_PANTALLA // 2 - 210, 510, 190, 50, hover_revancha)
         self.dibujar_boton(pantalla, "Menu", self.config.ANCHO_PANTALLA // 2 + 20, 510, 190, 50, hover_menu)
+
+        texto_atajos = self.fuente_pequena.render(
+            "ENTER/R: Revancha   |   ESC: Menu", True, self.config.COLOR_PLATA)
+        pantalla.blit(texto_atajos, (self.config.ANCHO_PANTALLA // 2 - texto_atajos.get_width() // 2, 600))
 
     def obtener_accion_fin_ronda(self, mouse_pos, click):
         """Obtiene la acción de fin de ronda según la posición del mouse y el click.

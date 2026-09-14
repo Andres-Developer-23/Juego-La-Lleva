@@ -1,5 +1,6 @@
 """Módulo principal del juego que orquesta todos los componentes MVC."""
 
+import random
 import sys
 
 import pygame
@@ -65,6 +66,8 @@ class Juego:
         self.tiempo_ronda = 0
         self.estado = "menu"
         self.opcion_activa = 0
+        self.opcion_menu = 0
+        self.toasts = []
         self.tiempo_inicio_lleva = 0
         self.fade_alpha = 0
         self.mouse_pos = None
@@ -139,6 +142,8 @@ class Juego:
 
         self.interfaz.actualizar(delta_tiempo)
         self._gestionar_musica()
+        if self.toasts:
+            self.toasts = self.interfaz.actualizar_toasts(self.toasts, delta_tiempo)
 
         if self.estado == "menu":
             self._menu_principal()
@@ -168,56 +173,66 @@ class Juego:
             pygame.display.flip()
 
     def _menu_principal(self):
-        """Maneja la pantalla del menú principal."""
+        """Maneja la pantalla del menú principal con mouse y teclado."""
         accion = self.interfaz.obtener_accion_menu(self.mouse_pos, self.click_realizado)
 
+        if accion:
+            self._ejecutar_accion_menu(accion)
+            return
+
+        for evento in self.eventos_pendientes:
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_1:
+                    self._ejecutar_accion_menu("un_jugador")
+                    return
+                elif evento.key == pygame.K_2:
+                    self._ejecutar_accion_menu("jugar")
+                    return
+                elif evento.key == pygame.K_3:
+                    self._ejecutar_accion_menu("opciones")
+                    return
+                elif evento.key == pygame.K_UP:
+                    self.opcion_menu = (self.opcion_menu - 1) % self.config.BOTONES_MENU
+                    self.audio.clic()
+                elif evento.key == pygame.K_DOWN:
+                    self.opcion_menu = (self.opcion_menu + 1) % self.config.BOTONES_MENU
+                    self.audio.clic()
+                elif evento.key == pygame.K_RETURN:
+                    self._ejecutar_accion_menu(self.interfaz.acciones_menu[self.opcion_menu])
+                    return
+
+        self.interfaz.dibujar_menu_principal(self.pantalla, self.mouse_pos, self.opcion_menu)
+        pygame.display.flip()
+
+    def _ejecutar_accion_menu(self, accion):
+        """Ejecuta la acción seleccionada en el menú principal.
+
+        Args:
+            accion (str): Identificador de la acción del menú.
+        """
         if accion == "un_jugador":
             self.modo = "un_jugador"
             self.nombres = ["J1"]
             self.nombre_activo = 0
             self.estado = "nombres"
-            self.audio.clic()
         elif accion == "jugar":
             self.modo = "dos_jugadores"
             self.nombres = ["J1", "J2"]
             self.nombre_activo = 0
             self.estado = "nombres"
-            self.audio.clic()
         elif accion == "ayuda":
             self.estado = "ayuda"
-            self.audio.clic()
         elif accion == "ranking":
             self.estado = "ranking"
-            self.audio.clic()
         elif accion == "opciones":
             self.estado = "opciones"
             self.opcion_activa = 0
-            self.audio.clic()
         elif accion == "salir":
             pygame.quit()
             sys.exit()
-
-        for evento in self.eventos_pendientes:
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_1:
-                    self.modo = "un_jugador"
-                    self.nombres = ["J1"]
-                    self.nombre_activo = 0
-                    self.estado = "nombres"
-                    self.audio.clic()
-                elif evento.key == pygame.K_2:
-                    self.modo = "dos_jugadores"
-                    self.nombres = ["J1", "J2"]
-                    self.nombre_activo = 0
-                    self.estado = "nombres"
-                    self.audio.clic()
-                elif evento.key == pygame.K_3:
-                    self.estado = "opciones"
-                    self.opcion_activa = 0
-                    self.audio.clic()
-
-        self.interfaz.dibujar_menu_principal(self.pantalla, self.mouse_pos)
-        pygame.display.flip()
+        self.audio.clic()
+        if accion not in ("salir",):
+            self.opcion_menu = self.interfaz.acciones_menu.index(accion)
 
     def _pantalla_nombres(self):
         """Maneja la pantalla de ingreso de nombres."""
@@ -285,6 +300,7 @@ class Juego:
             self.countdown_valor -= 1
             if self.countdown_valor <= 0:
                 self.audio.inicio()
+                self._mostrar_toast("¡A jugar!", self.config.COLOR_LIBRE)
                 self.estado = "jugando"
                 return
             self.audio.beep()
@@ -351,9 +367,26 @@ class Juego:
         self.interfaz.dibujar_hud(self.pantalla, self.tiempo_ronda,
                                   self.puntaje_service.tiempos_lleva, self.jugadores,
                                   self.duracion_ronda, self.efectos_activos)
+        self.interfaz.dibujar_toasts(self.pantalla, self.toasts)
 
         pygame.display.flip()
         self.reloj.tick(self.config.FPS)
+
+    def _mostrar_toast(self, texto, color=None):
+        """Muestra una notificación breve en pantalla.
+
+        Args:
+            texto (str): Mensaje a mostrar.
+            color (tuple, optional): Color del texto.
+        """
+        if len(self.toasts) >= 4:
+            self.toasts.pop(0)
+        self.toasts.append({
+            'texto': texto,
+            'color': color or (255, 255, 255),
+            'tiempo': 0.0,
+            'duracion': 2.5,
+        })
 
     def _timers_efectos(self, id_jugador):
         """Devuelve los temporizadores de efectos de un jugador.
@@ -442,6 +475,13 @@ class Juego:
             self.efectos.append(self.efecto_view.crear_toque(power_up.x, power_up.y, color, 10))
         self.audio.clic()
 
+        if tipo == "velocidad":
+            self._mostrar_toast(f"¡{objetivo.nombre}: VELOCIDAD!", color)
+        elif tipo == "congelar":
+            self._mostrar_toast(f"¡{objetivo.nombre} CONGELADO!", color)
+        elif tipo == "escudo":
+            self._mostrar_toast(f"¡{objetivo.nombre}: ESCUDO!", color)
+
     def _pantalla_pausa(self):
         """Maneja la pantalla de pausa durante la partida."""
         for evento in self.eventos_pendientes:
@@ -484,6 +524,7 @@ class Juego:
         """
         protegido.escudo = False
         self.audio.clic()
+        self._mostrar_toast(f"¡Escudo de {protegido.nombre} bloqueado!", (100, 150, 255))
         x1, y1 = llevador.obtener_posicion()
         x2, y2 = protegido.obtener_posicion()
         if len(self.efectos) < 6:
@@ -500,6 +541,7 @@ class Juego:
             quien_tiene_lleva, quien_recibe, self.tiempo_ronda, self.tiempo_inicio_lleva)
         self._crear_efecto_toque(quien_tiene_lleva, quien_recibe)
         self.audio.tocar()
+        self._mostrar_toast(f"¡{quien_recibe.nombre} es La Lleva!", self.config.COLOR_LLEVA)
 
     def _crear_efecto_toque(self, j1, j2):
         """Crea un efecto visual en el punto medio del toque.
@@ -517,6 +559,19 @@ class Juego:
         """Finaliza la ronda actual y determina el ganador."""
         self.ronda_service.cerrar_lleva_actual(self.jugadores, self.tiempo_ronda,
                                                self.tiempo_inicio_lleva)
+        ganador = self.puntaje_service.obtener_ganador()
+        if ganador is not None:
+            nombre = next((j.nombre for j in self.jugadores if j.id == ganador), "Jugador")
+            self._mostrar_toast(f"¡{nombre} gana!", self.config.COLOR_DORADO)
+            ganador_jugador = next((j for j in self.jugadores if j.id == ganador), None)
+            if ganador_jugador:
+                x, y = ganador_jugador.obtener_posicion()
+                for _ in range(8):
+                    if len(self.efectos) >= 10:
+                        break
+                    self.efectos.append(self.efecto_view.crear_toque(
+                        x + random.uniform(-80, 80), y + random.uniform(-80, 80),
+                        self.config.COLOR_DORADO, 6))
         self.audio.fin_ronda()
         self.estado = "fin_ronda"
 
@@ -538,7 +593,7 @@ class Juego:
             return
 
         for evento in self.eventos_pendientes:
-            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_RETURN:
+            if evento.type == pygame.KEYDOWN and evento.key in (pygame.K_RETURN, pygame.K_r):
                 self._iniciar_partida()
                 return
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
@@ -644,6 +699,8 @@ class Juego:
 
     def _iniciar_partida(self):
         """Prepara y arranca una partida, sin importar desde qué pantalla se invoque."""
+        self._normalizar_nombres()
+        self.toasts.clear()
         if self.modo == "un_jugador":
             self.gestor_modos.iniciar_un_jugador(self, self.nombres[0] if self.nombres else "J1")
         else:
@@ -663,6 +720,15 @@ class Juego:
         self.countdown_timer = 0
         self.fade_alpha = 255
         self.audio.beep()
+
+    def _normalizar_nombres(self):
+        """Ajusta los nombres de los jugadores antes de iniciar (sin espacios vacíos)."""
+        cantidad = len(self.nombres)
+        for i in range(cantidad):
+            nombre = (self.nombres[i] or "").strip()
+            if not nombre:
+                nombre = f"J{i + 1}"
+            self.nombres[i] = nombre[:12]
 
     def _aplicar_dificultad_ia(self):
         """Aplica la dificultad seleccionada al jugador controlado por IA."""
@@ -684,6 +750,7 @@ class Juego:
         self.efectos.clear()
         self.power_ups.clear()
         self.efectos_activos.clear()
+        self.toasts.clear()
         self.fade_alpha = 255
         self._ranking_registrado = False
 

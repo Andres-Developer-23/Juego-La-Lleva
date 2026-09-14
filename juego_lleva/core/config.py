@@ -49,6 +49,7 @@ class Config:
     COLOR_BOTON = (50, 50, 80)
     COLOR_BOTON_HOVER = (70, 70, 110)
     COLOR_BORDE = (100, 100, 140)
+    BOTONES_MENU = 6
 
     # Assets
     ASSETS_DIR = os.path.join(_BASE_DIR, "assets")
