@@ -219,6 +219,11 @@ class Juego:
         self.interfaz.dibujar_menu_principal(self.pantalla, self.mouse_pos, self.opcion_menu)
         pygame.display.flip()
 
+    def _ritmo(self):
+        """Limita los FPS en escritorio; en la web el flip del navegador manda."""
+        if not self.config.PLATAFORMA_WEB:
+            self.reloj.tick(self.config.FPS)
+
     def _ejecutar_accion_menu(self, accion):
         """Ejecuta la acción seleccionada en el menú principal.
 
@@ -295,7 +300,7 @@ class Juego:
                 self._volver_al_menu()
 
         pygame.display.flip()
-        self.reloj.tick(self.config.FPS)
+        self._ritmo()
 
     def _pantalla_countdown(self, delta_tiempo):
         """Maneja la pantalla de countdown antes de iniciar la partida.
@@ -322,7 +327,7 @@ class Juego:
 
         self.interfaz.dibujar_countdown(self.pantalla, self.countdown_valor)
         pygame.display.flip()
-        self.reloj.tick(self.config.FPS)
+        self._ritmo()
 
     def _bucle_juego(self, delta_tiempo):
         """Ejecuta el bucle principal de juego.
@@ -390,7 +395,7 @@ class Juego:
         self.tactil.dibujar(self.pantalla)
 
         pygame.display.flip()
-        self.reloj.tick(self.config.FPS)
+        self._ritmo()
 
     def _teclas_fusionadas(self):
         """Combina las teclas físicas con las teclas virtuales táctiles.
@@ -526,7 +531,7 @@ class Juego:
 
         self.interfaz.dibujar_pausa(self.pantalla)
         pygame.display.flip()
-        self.reloj.tick(self.config.FPS)
+        self._ritmo()
 
     def _procesar_colision(self, j1, j2):
         """Procesa la colisión entre dos jugadores.

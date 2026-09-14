@@ -39,15 +39,19 @@ def compilar():
         stdout=log,
         stderr=subprocess.STDOUT)
     inicio = time.time()
+    inicio_ns = time.time_ns()
     while time.time() - inicio < MAX_ESPERA_SEG:
         if proceso.poll() is not None:
             log.flush()
             log.close()
             return
-        listo = all((SALIDA / nombre).exists() for nombre in
-                    ("index.html",) + tuple(p.name for p in SALIDA.glob("*.apk")) +
-                    tuple(p.name for p in SALIDA.glob("*.tar.gz")))
-        if listo and (SALIDA / "index.html").stat().st_size > 1000:
+        try:
+            index_nuevo = (SALIDA / "index.html").stat().st_mtime_ns > inicio_ns
+            apk_nuevo = any(p.stat().st_mtime_ns > inicio_ns for p in SALIDA.glob("*.apk"))
+            tar_nuevo = any(p.stat().st_mtime_ns > inicio_ns for p in SALIDA.glob("*.tar.gz"))
+        except FileNotFoundError:
+            index_nuevo = apk_nuevo = tar_nuevo = False
+        if index_nuevo and apk_nuevo and tar_nuevo:
             log.flush()
             break
         time.sleep(5)
