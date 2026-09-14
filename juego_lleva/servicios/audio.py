@@ -28,12 +28,14 @@ class ServicioAudio:
             self.sonido_countdown = self._crear_beep()
             self.sonido_inicio = self._crear_inicio()
             self.sonido_fin = self._crear_fin_ronda()
+            self.sonido_paso = self._crear_paso()
             self.musica = self._generar_musica()
             self.canal_musica = pygame.mixer.Channel(1)
         except (pygame.error, OSError, ValueError):
             self.activo = False
             self.sonido_toque = self.sonido_clic = None
             self.sonido_countdown = self.sonido_inicio = self.sonido_fin = None
+            self.sonido_paso = None
             self.musica = None
             self.canal_musica = None
             return
@@ -132,6 +134,18 @@ class ServicioAudio:
         muestras += self._nota(1174.66, 0.16, 0.4)
         return self._a_muestras(muestras)
 
+    def _crear_paso(self):
+        """Crea el sonido sordo de una pisada.
+
+        Returns:
+            pygame.mixer.Sound o None: Sonido generado.
+        """
+        if not self.activo:
+            return None
+        muestras = self._nota(110, 0.06, 0.45)
+        muestras += self._nota(55, 0.06, 0.30)
+        return self._a_muestras(muestras)
+
     def _crear_fin_ronda(self):
         """Crea la fanfarria de fin de ronda.
 
@@ -186,6 +200,10 @@ class ServicioAudio:
         """Reproduce el sonido de tocar a otro jugador."""
         self._reproducir(self.sonido_toque)
 
+    def paso(self):
+        """Reproduce el sonido de una pisada."""
+        self._reproducir(self.sonido_paso, volumen=0.40)
+
     def clic(self):
         """Reproduce el sonido de clic de los botones."""
         self._reproducir(self.sonido_clic)
@@ -202,16 +220,18 @@ class ServicioAudio:
         """Reproduce la fanfarria de fin de ronda."""
         self._reproducir(self.sonido_fin)
 
-    def _reproducir(self, sonido):
+    def _reproducir(self, sonido, volumen=None):
         """Reproduce un sonido si está disponible, sin interrumpir otros.
 
         Args:
             sonido: Sonido a reproducir o None.
+            volumen (float, optional): Volumen puntual (0-1) para este sonido.
         """
         if not self.activo or sonido is None:
             return
-        pygame.mixer.Channel(0).set_volume(self.volumen_sfx)
-        pygame.mixer.Channel(0).play(sonido)
+        canal = pygame.mixer.Channel(0)
+        canal.set_volume(self.volumen_sfx if volumen is None else volumen)
+        canal.play(sonido)
 
     def set_volumen_sfx(self, volumen):
         """Establece el volumen de los efectos de sonido.

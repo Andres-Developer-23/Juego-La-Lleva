@@ -67,6 +67,30 @@ class TestJugadorHumanoRealTime(unittest.TestCase):
         self.assertEqual(jugador.x, 0)
         self.assertEqual(jugador.y, 0)
 
+    def test_diagonal_no_supera_velocidad_maxima(self):
+        jugador = JugadorHumano(800, 800, 0, self.teclas)
+        jugador.mover(self._presionadas(self.teclas['arriba'], self.teclas['derecha']),
+                      delta_tiempo=1.0)
+        self.assertAlmostEqual(jugador.velocidad_abs, self.config.VELOCIDAD_JUGADOR, delta=1)
+
+    def test_inercia_no_detiene_de_golpe(self):
+        jugador = JugadorHumano(0, 0, 0, self.teclas)
+        jugador.mover(self._presionadas(self.teclas['derecha']), delta_tiempo=2.0)
+        tras_mover = jugador.x
+        jugador.mover(self._presionadas(), delta_tiempo=0.05)
+        self.assertGreater(jugador.x, tras_mover)
+
+    def test_tropiezo_frena_movimiento(self):
+        jugador = JugadorHumano(100, 100, 0, self.teclas)
+        jugador.tropezando = self.config.DURACION_TROPIEZO
+        jugador.mover(self._presionadas(self.teclas['derecha']), delta_tiempo=0.1)
+        self.assertLess(jugador.x, 105)
+
+    def test_direccion_cara_sigue_la_velocidad(self):
+        jugador = JugadorHumano(1000, 800, 0, self.teclas)
+        jugador.mover(self._presionadas(self.teclas['izquierda']), delta_tiempo=1.0)
+        self.assertEqual(jugador.direccion_cara, -1)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,7 +19,7 @@ class JugadorHumano(Jugador):
         super().__init__(x, y, id_jugador, nombre)
         self.teclas = teclas
 
-    def mover(self, teclas_presionadas=None, en_zona_lenta=False, delta_tiempo=None):
+    def mover(self, teclas_presionadas=None, en_zona_lenta=False, delta_tiempo=None, obstaculos=None):
         """Mueve el jugador según las teclas presionadas.
 
         Args:
@@ -27,23 +27,26 @@ class JugadorHumano(Jugador):
             en_zona_lenta (bool): True si el jugador está en una zona que ralentiza.
             delta_tiempo (float, optional): Tiempo transcurrido en segundos.
                 Por defecto equivale a un frame (1/FPS).
+            obstaculos: Se ignora (el jugador humano choca y desliza).
         """
         if teclas_presionadas is None:
             return
 
         dt = delta_tiempo if delta_tiempo is not None else 1.0 / self.config.FPS
-        velocidad = self.config.VELOCIDAD_JUGADOR * dt * self.factor_velocidad
-        if en_zona_lenta:
-            velocidad *= self.config.FACTOR_RALENTIZACION
 
-        if teclas_presionadas[self.teclas['arriba']]:
-            self.y -= velocidad
-        if teclas_presionadas[self.teclas['abajo']]:
-            self.y += velocidad
+        dir_x = 0
+        dir_y = 0
         if teclas_presionadas[self.teclas['izquierda']]:
-            self.x -= velocidad
+            dir_x -= 1
         if teclas_presionadas[self.teclas['derecha']]:
-            self.x += velocidad
+            dir_x += 1
+        if teclas_presionadas[self.teclas['arriba']]:
+            dir_y -= 1
+        if teclas_presionadas[self.teclas['abajo']]:
+            dir_y += 1
 
-        self._limitar_pantalla()
-        self.posicion_anterior = (self.x, self.y)
+        velocidad_max = self.config.VELOCIDAD_JUGADOR * self.factor_velocidad
+        if en_zona_lenta:
+            velocidad_max *= self.config.FACTOR_RALENTIZACION
+
+        self.mover_con_fisica(dir_x, dir_y, velocidad_max, dt)

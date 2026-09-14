@@ -8,10 +8,12 @@ permanezca como la lleva, y gana quien menos tiempo lo sea.
 
 - Modo 1 jugador contra la computadora (IA con dificultad ajustable)
 - Multijugador local (2 jugadores)
-- Movimiento por tiempo real (velocidad en píxeles por segundo, independiente de los FPS)
+- Física realista: aceleración, inercia y diagonal normalizada (velocidad en píxeles por segundo)
+- Muñecos procedimentales animados (cabeza, cuerpo, brazos y piernas con marcha y giro)
 - Lleva inicial aleatoria
-- Obstáculos: cajas (rebote) y zonas lentas
+- Obstáculos: cajas (se deslizan y rebotan) y zonas lentas
 - Power-ups: velocidad, escudo y congelar al rival
+- Toque por alcance con tropiezo breve y flash de impacto
 - Efectos visuales al tocar (anillo + partículas) y al recoger power-ups
 - Duración de ronda configurable (30 / 60 / 90 s)
 - Ranking de mejores tiempos con persistencia
@@ -31,18 +33,33 @@ implementado:
 
 ### Jugabilidad y contenido
 
-- **Movimiento por tiempo real**: los jugadores y la IA se mueven usando
-  *delta time* (velocidad en píxeles por segundo en lugar de píxeles por frame).
-  Así el juego se siente idéntico a 30, 60 o 144 FPS, algo esencial al compilar
-  a navegador, donde la velocidad de fotogramas varía según el dispositivo.
-- **Balance de IA**: la IA huye de "la lleva" persiguiéndola, con factor de
-  velocidad, variación y tres dificultades (Fácil/Normal/Difícil) configurables.
+- **Física realista**: el movimiento usa *delta time* (velocidad en píxeles por
+  segundo) con aceleración, inercia, rozamiento y desaceleración al soltar las
+  teclas. La diagonal se normaliza, de modo que moverse en diagonal no es más
+  rápido que en línea recta. Cada jugador tiene velocidad (`vx`/`vy`), dirección
+  de cara y conserva la inercia al rebotar.
+- **Muñecos procedimentales**: los personajes se dibujan con pygame en tiempo
+  real (cabeza, pelo, ojos, torso con brillo, brazos y piernas). Caminan con
+  marcha animada según su velocidad, se voltean hacia donde corren, dejan
+  sombra y rastro de partículas, y quien lleva "la lleva" luce pañuelo rojo
+  ondeante y aura pulsante. Sin dependencia de sprites externos.
+- **Balance de IA**: la IA persigue a "la lleva" y huye si no la lleva, evitando
+  las cajas por repulsión, alejándose de las paredes y con un **tiempo de
+  reacción** propio de cada dificultad (Rápida/Normal/Difícil).
+- **Colisiones que deslizan**: al chocar con una caja el jugador se desliza
+  alrededor de ella corrigiendo el eje de menor penetración; si entra a gran
+  velocidad rebota perdiendo energía.
+- **Toque por alcance**: el contacto se detecta por distancia entre centros
+  (`ALCANCE_TOQUE`) antes de que los cuerpos se solapen, y al recibir la lleva el
+  jugador **tropieza** brevemente con un destello de impacto en pantalla.
 - **Power-ups**: velocidad (verde), escudo azul que bloquea un toque y
   congelación del rival (cian). Se generan con una frecuencia temporal, envejecen
   y expiran, con efectos y mensajes al recogerlos.
-- **Obstáculos**: cajas con rebote físico y zonas que ralentizan al jugador.
+- **Entorno**: cajones de madera con sombra y charcos azules pulsantes que
+  ralentizan al jugador.
 - **Efectos al tocar**: anillo expansivo y partículas en el punto del contacto,
-  audio de toque, y transferencia correcta del rol de "la lleva".
+  audio de toque, pisadas al correr, y transferencia correcta del rol de "la
+  lleva".
 - **Sonido procedimental**: la música y los efectos se sintetizan con numpy en
   vez de usar archivos externos (no hay dependencia de sprites/audio descargado).
 
@@ -53,10 +70,10 @@ implementado:
   (entrada) e `interfaces` (abstracciones). Las reglas de la ronda, el ranking,
   las colisiones, los power-ups y la síntesis de audio son **servicios
   independientes**, desacoplados de la interfaz.
-- **Pruebas unitarias**: suite con **78 pruebas** usando `unittest`
-  (puntajes, reglas de la ronda, ranking con persistencia, colisiones,
-  movimiento por tiempo real del jugador y de la IA, power-ups, configuración
-  persistente, síntesis de audio y control táctil).
+- **Pruebas unitarias**: suite con **86 pruebas** usando `unittest`
+  (puntajes, reglas de la ronda, ranking con persistencia, colisiones y
+  deslizamiento, toque por alcance, física del jugador y de la IA, power-ups,
+  configuración persistente, síntesis de audio y control táctil).
 
 ### Interfaz y experiencia de usuario
 
@@ -120,6 +137,13 @@ Servir y probar (desde la PC o el celular de la misma red):
 
 ```bash
 .venv/bin/python servidor_web.py juego_lleva/build/web
+```
+
+Para exponerlo a internet y jugar desde el celular fuera de la red local
+(usa Cloudflare Tunnel; muestra la URL pública al levantar):
+
+```bash
+bash web/servir_movil.sh
 ```
 
 Verificar automáticamente la web compilada (abre Firefox headless, hace clic y
@@ -238,7 +262,7 @@ Juego-La-Lleva/
 │   ├── servicios/      # Lógica de negocio
 │   ├── controles/      # Manejo de entrada (teclado y táctil)
 │   ├── interfaces/     # Abstracciones
-│   ├── tests/          # 78 pruebas unitarias
+│   ├── tests/          # 86 pruebas unitarias
 │   └── assets/         # Sprites y fondos
 ├── web/                # Soporte para la versión navegador
 │   ├── vendor/         # browserfs.min.js versionado (la CDN ya no lo sirve)
@@ -257,10 +281,12 @@ Ejecutar la suite de pruebas desde el directorio `juego_lleva/`:
 python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-Las **78 pruebas** cubren: puntajes, reglas de la ronda (regla clásica),
-ranking con persistencia, colisiones, movimiento del jugador y de la IA (por
-tiempo real), power-ups, configuración persistente, síntesis de audio y control
-táctil para la versión web.
+Las **86 pruebas** cubren: puntajes, reglas de la ronda (regla clásica),
+ranking con persistencia, colisiones y deslizamiento contra cajas, rebote a
+alta velocidad, toque por alcance, física del jugador (inercia, diagonal
+normalizada, tropiezo) y de la IA (persecución/huida, reacción), power-ups,
+configuración persistente, síntesis de audio y control táctil para la versión
+web.
 
 ## Requisitos
 

@@ -40,8 +40,18 @@ class TestColisionService(unittest.TestCase):
         x1, y1 = jugador.x, jugador.y
         self.assertTrue(self.servicio.detectar_colision_jugador_obstaculo(jugador, caja))
         self.servicio.rebote_obstaculo(jugador, caja)
-        self.assertGreater(jugador.x, x1)
-        self.assertLess(jugador.y, y1)
+        self.assertFalse(self.servicio.detectar_colision_jugador_obstaculo(jugador, caja))
+        self.assertTrue(jugador.x != x1 or jugador.y != y1)
+
+    def test_detectar_toque_por_alcance(self):
+        j1 = JugadorHumano(0, 0, 0, {})
+        j2 = JugadorHumano(89, 0, 1, {})
+        self.assertTrue(self.servicio.detectar_toque(j1, j2))
+
+    def test_no_hay_toque_mas_alla_del_alcance(self):
+        j1 = JugadorHumano(0, 0, 0, {})
+        j2 = JugadorHumano(500, 0, 1, {})
+        self.assertFalse(self.servicio.detectar_toque(j1, j2))
 
     def test_jugador_en_zona_lenta(self):
         jugador = JugadorHumano(100, 100, 0, {})
@@ -50,16 +60,28 @@ class TestColisionService(unittest.TestCase):
         self.assertTrue(self.servicio.jugador_en_zona_lenta(jugador, [zona, caja]))
         self.assertFalse(self.servicio.jugador_en_zona_lenta(jugador, [caja]))
 
-    def test_rebote_escala_con_delta(self):
-        self.servicio.limpiar_cooldown()
-        jugador_a = JugadorHumano(350, 350, 0, {})
+    def test_desliza_sin_penetrar(self):
+        jugador = JugadorHumano(350, 350, 0, {})
+        jugador.mover_con_fisica(0, 1, 100, 0.5)
         caja = Obstaculo(300, 400, "caja")
-        self.servicio.rebote_obstaculo(jugador_a, caja, delta_tiempo=1.0)
-        desplazamiento = jugador_a.x - 350
+        self.servicio.resolver_obstaculo(jugador, caja)
+        self.assertFalse(self.servicio.detectar_colision_jugador_obstaculo(jugador, caja))
 
-        jugador_b = JugadorHumano(350, 350, 1, {})
-        self.servicio.rebote_obstaculo(jugador_b, caja, delta_tiempo=0.5)
-        self.assertAlmostEqual(jugador_b.x - 350, desplazamiento / 2, delta=2)
+    def test_rebote_a_alta_velocidad(self):
+        jugador = JugadorHumano(260, 402.5, 0, {})
+        jugador.vx = -400
+        jugador.vy = 0
+        caja = Obstaculo(300, 400, "caja")
+        self.servicio.resolver_obstaculo(jugador, caja)
+        self.assertGreater(jugador.vx, 0)
+
+    def test_velocidad_lenta_no_invierte_direccion(self):
+        jugador = JugadorHumano(260, 402.5, 0, {})
+        jugador.vx = -50
+        jugador.vy = 0
+        caja = Obstaculo(300, 400, "caja")
+        self.servicio.resolver_obstaculo(jugador, caja)
+        self.assertLessEqual(jugador.vx, 0)
 
     def test_cooldown_evita_colisiones_seguidas(self):
         j1 = JugadorHumano(0, 0, 0, {})

@@ -25,14 +25,16 @@ class TestJugadorIA(unittest.TestCase):
         self.humano.x = 500
         self.ia.x = 300
         self.ia.es_lleva = False
-        self.ia.mover()
+        self.ia.config.VARIACION_IA = 0
+        self.ia.mover(delta_tiempo=1.0)
         self.assertLess(self.ia.x, 300)
 
     def test_huye_cuando_lleva(self):
         self.humano.x = 500
         self.ia.x = 300
         self.ia.es_lleva = True
-        self.ia.mover()
+        self.ia.config.VARIACION_IA = 0
+        self.ia.mover(delta_tiempo=1.0)
         self.assertGreater(self.ia.x, 300)
 
     def test_se_mantiene_dentro_de_la_pantalla_al_huir(self):

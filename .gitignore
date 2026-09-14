@@ -72,3 +72,4 @@ Thumbs.db
 web/build.log
 web/servidor.log
 web/tunel.log
+web/*.log

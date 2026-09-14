@@ -1,6 +1,7 @@
 """Servicio que maneja la detección y resolución de colisiones."""
 
 import math
+
 from core.config import Config
 
 
@@ -27,6 +28,25 @@ class ColisionService:
         rect2 = j2.obtener_rectangulo()
         return rect1.colliderect(rect2)
 
+    def detectar_toque(self, j1, j2):
+        """Detecta si dos jugadores se tocan a distancia de alcance real.
+
+        Usa la distancia entre centros: si es menor que el alcance configurado
+        (suma de mitades + margen), se considera contacto, aunque sus
+        rectángulos de colisión aún no se solapen.
+
+        Args:
+            j1: Primer jugador.
+            j2: Segundo jugador.
+
+        Returns:
+            bool: True si están a distancia de toque, False en caso contrario.
+        """
+        dx = j1.x - j2.x
+        dy = j1.y - j2.y
+        dist = math.hypot(dx, dy)
+        return dist < self.config.ALCANCE_TOQUE
+
     def detectar_colisiones(self, jugadores):
         """Detecta todas las colisiones entre una lista de jugadores.
 
@@ -43,7 +63,7 @@ class ColisionService:
         colisiones = []
         for i, j1 in enumerate(jugadores):
             for j2 in jugadores[i + 1:]:
-                if self.detectar_colision(j1, j2):
+                if self.detectar_toque(j1, j2):
                     colisiones.append((j1, j2))
 
         if colisiones:
@@ -89,35 +109,55 @@ class ColisionService:
         rect_o = obstaculo.obtener_rectangulo()
         return rect_j.colliderect(rect_o)
 
+    def resolver_obstaculo(self, jugador, obstaculo):
+        """Resuelve la colisión deslizando al jugador alrededor del obstáculo.
+
+        Primero corrige el eje de menor penetración, de forma que al chocar
+        de frente el jugador "se desliza" a lo largo de la pared. Si la
+        velocidad de entrada es alta, aplica un rebote.
+
+        Args:
+            jugador: Jugador que colisiona.
+            obstaculo: Obstáculo (caja) con el que colisiona.
+        """
+        rect_j = jugador.obtener_rectangulo()
+        rect_o = obstaculo.obtener_rectangulo()
+
+        centro_x = rect_j.centerx - rect_o.centerx
+        centro_y = rect_j.centery - rect_o.centery
+        over_x = (rect_j.width + rect_o.width) / 2 - abs(centro_x)
+        over_y = (rect_j.height + rect_o.height) / 2 - abs(centro_y)
+
+        if over_x <= 0 or over_y <= 0:
+            return
+
+        horizontal = over_x < over_y
+        empuje = over_x if horizontal else over_y
+
+        if horizontal:
+            jugador.x += empuje if centro_x > 0 else -empuje
+        else:
+            jugador.y += empuje if centro_y > 0 else -empuje
+
+        velocidad_entrada = math.hypot(jugador.vx, jugador.vy)
+        if velocidad_entrada > self.config.FUERZA_REBOTE:
+            choque = 0.6
+            if horizontal and centro_x != 0:
+                jugador.vx = -math.copysign(velocidad_entrada * choque, centro_x)
+            elif not horizontal and centro_y != 0:
+                jugador.vy = -math.copysign(velocidad_entrada * choque, centro_y)
+
     def rebote_obstaculo(self, jugador, obstaculo, delta_tiempo=None):
         """Aplica un rebote al jugador cuando colisiona con un obstáculo.
+
+        Método de compatibilidad que delega en la resolución deslizante.
 
         Args:
             jugador: Jugador que rebota.
             obstaculo: Obstáculo con el que colisiona.
             delta_tiempo (float, optional): Tiempo transcurrido en segundos.
-                Por defecto equivale a un frame (1/FPS).
         """
-        rect_j = jugador.obtener_rectangulo()
-        rect_o = obstaculo.obtener_rectangulo()
-
-        centro_j_x = rect_j.centerx
-        centro_j_y = rect_j.centery
-        centro_o_x = rect_o.centerx
-        centro_o_y = rect_o.centery
-
-        dx = centro_j_x - centro_o_x
-        dy = centro_j_y - centro_o_y
-
-        dist = math.sqrt(dx * dx + dy * dy)
-        if dist == 0:
-            dx = 1
-            dist = 1
-
-        dt = delta_tiempo if delta_tiempo is not None else 1.0 / self.config.FPS
-        fuerza = self.config.FUERZA_REBOTE * dt
-        jugador.x += (dx / dist) * fuerza
-        jugador.y += (dy / dist) * fuerza
+        self.resolver_obstaculo(jugador, obstaculo)
 
     def jugador_en_zona_lenta(self, jugador, obstaculos):
         """Verifica si un jugador está en una zona que ralentiza.

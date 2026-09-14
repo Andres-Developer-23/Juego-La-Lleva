@@ -95,6 +95,8 @@ class Juego:
         self.nombre_activo = 0
         self.fondo = self._cargar_fondo()
         self._ranking_registrado = False
+        self.toque_flash = 0.0
+        self.tiempo_pasos = 0.0
 
     def _cargar_fondo(self):
         """Carga la imagen de fondo del juego.
@@ -358,12 +360,18 @@ class Juego:
             if self._timers_efectos(jugador.id).get("congelar", 0) > 0:
                 continue
             en_zona = self.servicio_colision.jugador_en_zona_lenta(jugador, obstaculos)
-            jugador.mover(teclas, en_zona, delta_tiempo)
+            jugador.mover(teclas, en_zona, delta_tiempo, obstaculos=obstaculos)
 
         for jugador in self.jugadores:
             for obs in obstaculos:
                 if obs.tipo == "caja" and self.servicio_colision.detectar_colision_jugador_obstaculo(jugador, obs):
-                    self.servicio_colision.rebote_obstaculo(jugador, obs, delta_tiempo)
+                    self.servicio_colision.resolver_obstaculo(jugador, obs)
+
+        self.tiempo_pasos += delta_tiempo
+        if self.tiempo_pasos >= self.config.INTERVALO_PASOS:
+            self.tiempo_pasos = 0
+            if any(j.velocidad_abs > 80 for j in self.jugadores):
+                self.audio.paso()
 
         colisiones = self.servicio_colision.detectar_colisiones(self.jugadores)
         for j1, j2 in colisiones:
@@ -395,6 +403,13 @@ class Juego:
                                   self.duracion_ronda, self.efectos_activos)
         self.interfaz.dibujar_toasts(self.pantalla, self.toasts)
         self.tactil.dibujar(self.pantalla)
+
+        if self.toque_flash > 0:
+            self.toque_flash -= delta_tiempo
+            capa = pygame.Surface(
+                (self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA), pygame.SRCALPHA)
+            capa.fill((255, 255, 255, int(140 * max(0.0, self.toque_flash / 0.12))))
+            self.pantalla.blit(capa, (0, 0))
 
         pygame.display.flip()
         self._ritmo()
@@ -561,6 +576,7 @@ class Juego:
             llevador: Jugador que intentó tocarlo (sigue siendo 'La Lleva').
         """
         protegido.escudo = False
+        self.toque_flash = max(self.toque_flash, 0.06)
         self.audio.clic()
         self._mostrar_toast(f"¡Escudo de {protegido.nombre} bloqueado!", (100, 150, 255))
         x1, y1 = llevador.obtener_posicion()
@@ -577,6 +593,8 @@ class Juego:
         """
         self.tiempo_inicio_lleva = self.ronda_service.transferir_lleva(
             quien_tiene_lleva, quien_recibe, self.tiempo_ronda, self.tiempo_inicio_lleva)
+        quien_recibe.tropezando = self.config.DURACION_TROPIEZO
+        self.toque_flash = 0.12
         self._crear_efecto_toque(quien_tiene_lleva, quien_recibe)
         self.audio.tocar()
         self._mostrar_toast(f"¡{quien_recibe.nombre} es La Lleva!", self.config.COLOR_LLEVA)
@@ -777,6 +795,7 @@ class Juego:
                 jugador.config.VELOCIDAD_IA = parametros["VELOCIDAD_IA"]
                 jugador.config.VARIACION_IA = parametros["VARIACION_IA"]
                 jugador.config.FACTOR_IA_HUYENDO = parametros["FACTOR_IA_HUYENDO"]
+                jugador.tiempo_reaccion = parametros.get("TIEMPO_REACCION", 0.2)
 
     def _volver_al_menu(self):
         """Vuelve al menú principal limpiando el estado de la partida."""
