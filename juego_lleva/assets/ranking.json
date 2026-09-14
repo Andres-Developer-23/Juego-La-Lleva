@@ -115,5 +115,14 @@
       "Ana": 0,
       "Beto": 60
     }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-13 22:34",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
   }
 ]

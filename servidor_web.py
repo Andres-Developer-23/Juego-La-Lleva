@@ -6,8 +6,7 @@ import socket
 import webbrowser
 
 HEADERS = {
-    "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Embedder-Policy": "require-corp",
+    "Access-Control-Allow-Origin": "*",
     "Cache-Control": "no-cache",
 }
 

@@ -27,11 +27,13 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 El juego se compila a WebAssembly con [pygbag](https://pygbag.github.io/) y se
 puede jugar desde el navegador del celular sin instalar nada.
 
-Compilar (genera `juego_lleva/build/web/`):
+Compilar (genera `juego_lleva/build/web/`; pygbag 0.9.3 deja el build "colgado"
+tras escribir los archivos, por eso el script espera a que aparezcan y completa
+los recursos que su CDN ya no sirve):
 
 ```bash
-.venv/bin/pip install pygbag
-.venv/bin/python -m pygbag juego_lleva
+.venv/bin/pip install pygbag playwright            # playwright solo para el test web
+.venv/bin/python web/compilar_web.py
 ```
 
 Servir y probar (desde la PC o el celular de la misma red):
@@ -40,9 +42,16 @@ Servir y probar (desde la PC o el celular de la misma red):
 .venv/bin/python servidor_web.py juego_lleva/build/web
 ```
 
-El servidor muestra la IP local para abrir el juego desde el celular. En
-pantalla táctil aparecen cruces de control para J1 (izquierda) y J2 (derecha)
-más un botón de pausa. En el escritorio funcionan los controles normales.
+El servidor muestra la IP local para abrir el juego desde el celular
+(`http://<ip-pc>:8000/`). Notas:
+
+- Si la web carga desde `localhost:8*`, pygbag descarga las librerías del propio
+  servidor (se sirven ya en `build/web/cdn/`); desde una IP normal las baja de su
+  CDN, así que el celular necesita internet.
+- En pantalla táctil aparecen cruces de control para J1 (izquierda) y J2
+  (derecha) más un botón de pausa. En el escritorio funcionan los controles
+  normales.
+- La primera vez un toque/clic suele ser necesario para activar el audio.
 
 ## Instalación
 
