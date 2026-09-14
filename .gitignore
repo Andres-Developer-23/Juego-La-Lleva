@@ -68,3 +68,5 @@ venv.bak/
 # OS-specific
 .DS_Store
 Thumbs.db
+# Logs de compilacion web
+web/build.log
