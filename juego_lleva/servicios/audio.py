@@ -22,13 +22,21 @@ class ServicioAudio:
             self.activo = False
             return
 
-        self.sonido_toque = self._crear_toque()
-        self.sonido_clic = self._crear_clic()
-        self.sonido_countdown = self._crear_beep()
-        self.sonido_inicio = self._crear_inicio()
-        self.sonido_fin = self._crear_fin_ronda()
-        self.musica = self._generar_musica()
-        self.canal_musica = pygame.mixer.Channel(1)
+        try:
+            self.sonido_toque = self._crear_toque()
+            self.sonido_clic = self._crear_clic()
+            self.sonido_countdown = self._crear_beep()
+            self.sonido_inicio = self._crear_inicio()
+            self.sonido_fin = self._crear_fin_ronda()
+            self.musica = self._generar_musica()
+            self.canal_musica = pygame.mixer.Channel(1)
+        except (pygame.error, OSError, ValueError):
+            self.activo = False
+            self.sonido_toque = self.sonido_clic = None
+            self.sonido_countdown = self.sonido_inicio = self.sonido_fin = None
+            self.musica = None
+            self.canal_musica = None
+            return
         self.volumen_sfx = 1.0
         self.volumen_musica = 1.0
 

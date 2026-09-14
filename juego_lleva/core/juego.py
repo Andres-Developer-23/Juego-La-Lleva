@@ -4,6 +4,7 @@ import random
 import sys
 
 import pygame
+from controles.tactil import ControladorTactil
 from models.jugador_humano import JugadorHumano
 from models.jugador_ia import JugadorIA
 from servicios.audio import ServicioAudio
@@ -24,6 +25,17 @@ from views.efecto_view import EfectoView
 from views.power_up_view import PowerUpView
 
 
+class TeclasFusionadas:
+    """Mapa de teclas que combina el teclado físico con teclas virtuales."""
+
+    def __init__(self, base, extras):
+        self.base = base
+        self.extras = set(extras)
+
+    def __getitem__(self, codigo):
+        return bool(self.base[codigo]) or codigo in self.extras
+
+
 class Juego:
     """Clase principal que orquesta el juego completo."""
 
@@ -39,6 +51,7 @@ class Juego:
         pygame.display.set_caption("La Lleva - Juego Tradicional Colombiano")
         self.reloj = pygame.time.Clock()
         self.interfaz = Interfaz()
+        self.tactil = ControladorTactil(config.ANCHO_PANTALLA, config.ALTO_PANTALLA)
         self.configuracion = ConfiguracionService(config.SETTINGS_PATH)
         self.duracion_ronda = self.configuracion.obtener("duracion_ronda")
         self.puntaje_service = PuntajeService()
@@ -131,6 +144,8 @@ class Juego:
                 sys.exit()
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 self.click_realizado = True
+            if evento.type in (pygame.FINGERDOWN, pygame.FINGERMOTION, pygame.FINGERUP):
+                self.tactil.procesar_evento(evento)
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_F11:
                     self._alternar_pantalla_completa()
@@ -315,12 +330,16 @@ class Juego:
         Args:
             delta_tiempo (float): Tiempo transcurrido desde la última actualización.
         """
+        if self.tactil.consumir_pausa():
+            self.estado = "pausa"
+            return
+
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key in (pygame.K_ESCAPE, pygame.K_p):
                 self.estado = "pausa"
                 return
 
-        teclas = pygame.key.get_pressed()
+        teclas = self._teclas_fusionadas()
 
         obstaculos = self.gestor_modos.entorno.obstaculos
         self.gestor_modos.entorno.actualizar(delta_tiempo)
@@ -368,9 +387,18 @@ class Juego:
                                   self.puntaje_service.tiempos_lleva, self.jugadores,
                                   self.duracion_ronda, self.efectos_activos)
         self.interfaz.dibujar_toasts(self.pantalla, self.toasts)
+        self.tactil.dibujar(self.pantalla)
 
         pygame.display.flip()
         self.reloj.tick(self.config.FPS)
+
+    def _teclas_fusionadas(self):
+        """Combina las teclas físicas con las teclas virtuales táctiles.
+
+        Returns:
+            TeclasFusionadas: Objeto que indexa teclas físicas y virtuales.
+        """
+        return TeclasFusionadas(pygame.key.get_pressed(), self.tactil.teclas_activas())
 
     def _mostrar_toast(self, texto, color=None):
         """Muestra una notificación breve en pantalla.
@@ -484,6 +512,9 @@ class Juego:
 
     def _pantalla_pausa(self):
         """Maneja la pantalla de pausa durante la partida."""
+        if self.tactil.consumir_pausa():
+            self.estado = "jugando"
+            return
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN:
                 if evento.key in (pygame.K_p, pygame.K_ESCAPE):

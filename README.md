@@ -20,6 +20,29 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 - Pausa durante la partida
 - Modo ventana / pantalla completa
 - Preferencias guardadas en `assets/settings.json`
+- Versión para navegador (móvil y escritorio) con controles táctiles
+
+## Versión Web (navegador y móvil)
+
+El juego se compila a WebAssembly con [pygbag](https://pygbag.github.io/) y se
+puede jugar desde el navegador del celular sin instalar nada.
+
+Compilar (genera `juego_lleva/build/web/`):
+
+```bash
+.venv/bin/pip install pygbag
+.venv/bin/python -m pygbag juego_lleva
+```
+
+Servir y probar (desde la PC o el celular de la misma red):
+
+```bash
+.venv/bin/python servidor_web.py juego_lleva/build/web
+```
+
+El servidor muestra la IP local para abrir el juego desde el celular. En
+pantalla táctil aparecen cruces de control para J1 (izquierda) y J2 (derecha)
+más un botón de pausa. En el escritorio funcionan los controles normales.
 
 ## Instalación
 
@@ -60,6 +83,8 @@ Juego construido con Python y Pygame. Los jugadores compiten por evitar ser "la 
 | Revancha / menú | ENTER o R / ESC |
 | Música | M |
 | Pantalla completa | F11 |
+| En móvil: moverse | Cruces táctiles (J1 izquierda, J2 derecha) |
+| En móvil: pausar | Botón PAUSA (arriba a la derecha) |
 
 ## Cómo Jugar
 

@@ -61,5 +61,59 @@
       "Ana": 60,
       "Beto": 0
     }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-13 21:45",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-13 21:45",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-13 21:45",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-13 21:45",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-13 21:45",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-13 21:59",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
   }
 ]

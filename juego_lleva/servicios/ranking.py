@@ -33,9 +33,12 @@ class RankingService:
 
     def _guardar(self):
         """Guarda las entradas del ranking en el archivo JSON."""
-        os.makedirs(os.path.dirname(self.ruta), exist_ok=True)
-        with open(self.ruta, 'w', encoding='utf-8') as f:
-            json.dump(self.entradas, f, ensure_ascii=False, indent=2)
+        try:
+            os.makedirs(os.path.dirname(self.ruta), exist_ok=True)
+            with open(self.ruta, 'w', encoding='utf-8') as f:
+                json.dump(self.entradas, f, ensure_ascii=False, indent=2)
+        except OSError:
+            pass
 
     def registrar_partida(self, ganador_nombre, tiempo_ganador, jugadores_tiempos):
         """Registra una partida en el ranking.
