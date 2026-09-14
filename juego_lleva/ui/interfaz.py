@@ -229,7 +229,7 @@ class Interfaz:
             overlay = pygame.Surface((self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 120))
             pantalla.blit(overlay, (0, 0))
-        except:
+        except (pygame.error, OSError):
             pantalla.fill(self.config.COLOR_FONDO)
 
         for i in range(0, self.config.ALTO_PANTALLA, 3):

@@ -18,7 +18,6 @@ class JugadorView:
         self.trail_timer = 0
         self.sprite_normal = None
         self.sprite_lleva = None
-        self.particulas_explosion = []
 
     def cargar_sprites(self, jugador):
         """Carga los sprites correspondientes al jugador.
@@ -43,7 +42,7 @@ class JugadorView:
         try:
             imagen = pygame.image.load(ruta).convert_alpha()
             return pygame.transform.scale(imagen, (self.config.TAMAÑO_JUGADOR, self.config.TAMAÑO_JUGADOR))
-        except:
+        except (pygame.error, OSError):
             return None
 
     def renderizar(self, pantalla, jugador, tiempo_delta=0):
@@ -56,10 +55,6 @@ class JugadorView:
         """
         self.tiempo_animacion += tiempo_delta
         self.trail_timer += tiempo_delta
-
-        if jugador.explotando:
-            self._renderizar_explosion(pantalla, jugador, tiempo_delta)
-            return
 
         if self.trail_timer > 0.05:
             self._agregar_particula_rastro(jugador)
@@ -165,96 +160,3 @@ class JugadorView:
                 'color': color,
                 'vida': 1.0
             })
-
-    def _renderizar_explosion(self, pantalla, jugador, tiempo_delta):
-        """Renderiza la animación de explosión del jugador.
-
-        Args:
-            pantalla: Superficie de pygame donde dibujar.
-            jugador: Objeto jugador en explosión.
-            tiempo_delta (float): Tiempo transcurrido desde la última actualización.
-        """
-        jugador.actualizar_explosion(tiempo_delta)
-        self._generar_particulas_explosion(jugador)
-        self._actualizar_particulas_explosion(tiempo_delta)
-
-        for p in self.particulas_explosion:
-            alpha = int(255 * p['vida'])
-            surface = pygame.Surface((int(p['tamaño'] * 2), int(p['tamaño'] * 2)), pygame.SRCALPHA)
-            color_alpha = (*p['color'], alpha)
-            pygame.draw.circle(surface, color_alpha, (int(p['tamaño']), int(p['tamaño'])), int(p['tamaño']))
-            pantalla.blit(surface, (int(p['x']) - int(p['tamaño']), int(p['y']) - int(p['tamaño'])))
-
-        flash_alpha = int(200 * (1 - jugador.tiempo_explosion / jugador.DURACION_EXPLOSION))
-        if flash_alpha > 0:
-            flash = pygame.Surface((self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA), pygame.SRCALPHA)
-            flash.fill((255, 255, 255, flash_alpha))
-            pantalla.blit(flash, (0, 0))
-
-    def _generar_particulas_explosion(self, jugador):
-        """Genera las partículas iniciales de la explosión.
-
-        Args:
-            jugador: Objeto jugador para obtener posición y color.
-        """
-        if not self.particulas_explosion:
-            centro_x = jugador.x + self.config.TAMAÑO_JUGADOR // 2
-            centro_y = jugador.y + self.config.TAMAÑO_JUGADOR // 2
-            color_jugador = self.config.COLOR_JUGADOR_1 if jugador.id == 0 else self.config.COLOR_JUGADOR_2
-
-            for _ in range(40):
-                angulo = random.uniform(0, 2 * math.pi)
-                velocidad = random.uniform(80, 250)
-                self.particulas_explosion.append({
-                    'x': centro_x,
-                    'y': centro_y,
-                    'velocidad_x': math.cos(angulo) * velocidad,
-                    'velocidad_y': math.sin(angulo) * velocidad,
-                    'tamaño': random.randint(4, 12),
-                    'color': color_jugador,
-                    'vida': 1.0
-                })
-
-            for _ in range(20):
-                angulo = random.uniform(0, 2 * math.pi)
-                velocidad = random.uniform(40, 150)
-                self.particulas_explosion.append({
-                    'x': centro_x,
-                    'y': centro_y,
-                    'velocidad_x': math.cos(angulo) * velocidad,
-                    'velocidad_y': math.sin(angulo) * velocidad,
-                    'tamaño': random.randint(6, 16),
-                    'color': (255, 200, 50),
-                    'vida': 1.0
-                })
-
-            for _ in range(15):
-                angulo = random.uniform(0, 2 * math.pi)
-                velocidad = random.uniform(20, 100)
-                self.particulas_explosion.append({
-                    'x': centro_x,
-                    'y': centro_y,
-                    'velocidad_x': math.cos(angulo) * velocidad,
-                    'velocidad_y': math.sin(angulo) * velocidad,
-                    'tamaño': random.randint(3, 8),
-                    'color': (255, 255, 255),
-                    'vida': 1.0
-                })
-
-    def _actualizar_particulas_explosion(self, delta_tiempo):
-        """Actualiza el estado de las partículas de explosión.
-
-        Args:
-            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
-        """
-        nuevas_particulas = []
-        for p in self.particulas_explosion:
-            p['vida'] -= delta_tiempo * 0.7
-            p['x'] += p['velocidad_x'] * delta_tiempo
-            p['y'] += p['velocidad_y'] * delta_tiempo
-            p['velocidad_x'] *= 0.98
-            p['velocidad_y'] *= 0.98
-            p['tamaño'] *= 0.97
-            if p['vida'] > 0:
-                nuevas_particulas.append(p)
-        self.particulas_explosion = nuevas_particulas

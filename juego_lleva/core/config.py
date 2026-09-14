@@ -14,7 +14,6 @@ class Config:
     TAMAÑO_JUGADOR = 95
     VELOCIDAD_JUGADOR = 5
     DURACION_RONDA = 60
-    MAX_JUGADORES = 2
 
     # Colores principales
     COLOR_FONDO = (25, 25, 45)

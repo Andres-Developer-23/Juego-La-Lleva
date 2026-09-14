@@ -24,9 +24,6 @@ class Jugador(Movible):
         self._es_lleva = False
         self.config = Config()
         self.posicion_anterior = (x, y)
-        self.explotando = False
-        self.tiempo_explosion = 0
-        self.DURACION_EXPLOSION = 2.0
 
     def obtener_posicion(self):
         """Obtiene la posición actual del jugador.
@@ -66,34 +63,3 @@ class Jugador(Movible):
             valor (bool): True si el jugador tiene la pelota, False en caso contrario.
         """
         self._es_lleva = valor
-
-    def iniciar_explosion(self):
-        """Inicia la animación de explosión del jugador."""
-        self.explotando = True
-        self.tiempo_explosion = 0
-
-    def actualizar_explosion(self, delta_tiempo):
-        """Actualiza el estado de la explosión.
-
-        Args:
-            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
-        """
-        if self.explotando:
-            self.tiempo_explosion += delta_tiempo
-
-    def explosion_terminada(self):
-        """Verifica si la explosión ha terminado.
-
-        Returns:
-            bool: True si la explosión ha terminado, False en caso contrario.
-        """
-        return self.tiempo_explosion >= self.DURACION_EXPLOSION
-
-    def actualizar(self, delta_tiempo):
-        """Actualiza el estado del jugador.
-
-        Args:
-            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
-        """
-        self.posicion_anterior = (self.x, self.y)
-        self.actualizar_explosion(delta_tiempo)

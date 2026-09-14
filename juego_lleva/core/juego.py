@@ -50,8 +50,7 @@ class Juego:
         self.nombres = ["J1", "J2"]
         self.nombre_activo = 0
         self.fondo = self._cargar_fondo()
-        self.jugador_explotando = None
-        self.ganador_explosion = None
+        self._ranking_registrado = False
 
     def _cargar_fondo(self):
         """Carga la imagen de fondo del juego.
@@ -62,7 +61,7 @@ class Juego:
         try:
             imagen = pygame.image.load(self.config.FONDO).convert()
             return pygame.transform.scale(imagen, (self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA))
-        except:
+        except (pygame.error, OSError):
             return None
 
     def ejecutar(self):
@@ -99,8 +98,6 @@ class Juego:
                 self._pantalla_ayuda()
             elif self.estado == "countdown":
                 self._pantalla_countdown(delta_tiempo)
-            elif self.estado == "explosion":
-                self._pantalla_explosion(delta_tiempo)
             elif self.estado == "ranking":
                 self._pantalla_ranking()
 
@@ -128,7 +125,7 @@ class Juego:
                     self.estado = "nombres"
                 elif evento.key == pygame.K_2:
                     pygame.quit()
-                    exit()
+                    sys.exit()
 
         self.interfaz.dibujar_menu_principal(self.pantalla, self.mouse_pos)
         pygame.display.flip()
@@ -138,15 +135,12 @@ class Juego:
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
-                    self.estado = "menu"
+                    self._volver_al_menu()
                     return
                 elif evento.key == pygame.K_TAB:
                     self.nombre_activo = (self.nombre_activo + 1) % 2
                 elif evento.key == pygame.K_RETURN:
-                    self.gestor_modos.iniciar_multijugador(self, self.nombres)
-                    self.estado = "countdown"
-                    self.countdown_valor = 3
-                    self.countdown_timer = 0
+                    self._iniciar_partida()
                     return
                 elif evento.key == pygame.K_BACKSPACE:
                     self.nombres[self.nombre_activo] = self.nombres[self.nombre_activo][:-1]
@@ -157,10 +151,7 @@ class Juego:
             x, y = self.mouse_pos
             if (self.config.ANCHO_PANTALLA // 2 - 140 <= x <= self.config.ANCHO_PANTALLA // 2 + 140 and
                 520 <= y <= 570):
-                self.gestor_modos.iniciar_multijugador(self, self.nombres)
-                self.estado = "countdown"
-                self.countdown_valor = 3
-                self.countdown_timer = 0
+                self._iniciar_partida()
                 return
 
         self.interfaz.dibujar_pantalla_nombres(self.pantalla, self.nombres,
@@ -171,7 +162,7 @@ class Juego:
         """Maneja la pantalla de ayuda."""
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
-                self.estado = "menu"
+                self._volver_al_menu()
                 return
 
         self.interfaz.dibujar_ayuda(self.pantalla, self.mouse_pos)
@@ -180,7 +171,7 @@ class Juego:
             x, y = self.mouse_pos
             if (self.config.ANCHO_PANTALLA // 2 - 100 <= x <= self.config.ANCHO_PANTALLA // 2 + 100 and
                 670 <= y <= 720):
-                self.estado = "menu"
+                self._volver_al_menu()
 
         pygame.display.flip()
         self.reloj.tick(self.config.FPS)
@@ -193,7 +184,7 @@ class Juego:
         """
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
-                self.estado = "menu"
+                self._volver_al_menu()
                 return
 
         self.countdown_timer += delta_tiempo
@@ -217,12 +208,13 @@ class Juego:
         """
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
-                self.estado = "menu"
+                self._volver_al_menu()
                 return
 
         teclas = pygame.key.get_pressed()
 
         obstaculos = self.gestor_modos.entorno.obstaculos
+        self.gestor_modos.entorno.actualizar(delta_tiempo)
 
         for jugador in self.jugadores:
             en_zona = self.servicio_colision.jugador_en_zona_lenta(jugador, obstaculos)
@@ -238,7 +230,7 @@ class Juego:
             self._procesar_colision(j1, j2)
             self.servicio_colision.separar_jugadores(j1, j2, self.config.TAMAÑO_JUGADOR)
 
-        self.tiempo_ronda += 1 / self.config.FPS
+        self.tiempo_ronda += delta_tiempo
         if self.tiempo_ronda >= self.config.DURACION_RONDA:
             self._finalizar_ronda()
             return
@@ -260,37 +252,6 @@ class Juego:
         pygame.display.flip()
         self.reloj.tick(self.config.FPS)
 
-    def _pantalla_explosion(self, delta_tiempo):
-        """Maneja la pantalla de explosión cuando un jugador es tocado.
-
-        Args:
-            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
-        """
-        for evento in self.eventos_pendientes:
-            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
-                self.estado = "menu"
-                return
-
-        if self.fondo:
-            self.pantalla.blit(self.fondo, (0, 0))
-        else:
-            self.pantalla.fill(self.config.COLOR_FONDO)
-
-        self.entorno_view.renderizar(self.pantalla, self.gestor_modos.entorno, self.tiempo_ronda)
-
-        for i, jugador in enumerate(self.jugadores):
-            if i < len(self.jugadores_views):
-                self.jugadores_views[i].renderizar(self.pantalla, jugador, delta_tiempo)
-
-        self.interfaz.dibujar_hud(self.pantalla, self.tiempo_ronda,
-                                  self.puntaje_service.tiempos_lleva, self.jugadores)
-
-        if self.jugador_explotando and self.jugador_explotando.explosion_terminada():
-            self.estado = "fin_ronda"
-
-        pygame.display.flip()
-        self.reloj.tick(self.config.FPS)
-
     def _procesar_colision(self, j1, j2):
         """Procesa la colisión entre dos jugadores.
 
@@ -299,23 +260,22 @@ class Juego:
             j2: Segundo jugador involucrado.
         """
         if j1.es_lleva:
-            self._iniciar_explosion(j1, j2)
+            self._transferir_lleva(j1, j2)
         elif j2.es_lleva:
-            self._iniciar_explosion(j2, j1)
+            self._transferir_lleva(j2, j1)
 
-    def _iniciar_explosion(self, quien_tiene_lleva, quien_explota):
-        """Inicia la secuencia de explosión cuando un jugador con la pelota toca a otro.
+    def _transferir_lleva(self, quien_tiene_lleva, quien_recibe):
+        """Transfiere el rol de 'La Lleva' al jugador tocado.
 
         Args:
-            quien_tiene_lleva: Jugador que tiene la pelota.
-            quien_explota: Jugador que será tocado y explotará.
+            quien_tiene_lleva: Jugador que tenía el rol de 'La Lleva'.
+            quien_recibe: Jugador que fue tocado y pasa a ser 'La Lleva'.
         """
         tiempo_lleva = self.tiempo_ronda - self.tiempo_inicio_lleva
         self.puntaje_service.registrar_lleva(quien_tiene_lleva.id, tiempo_lleva)
-        self.ganador_explosion = quien_tiene_lleva
-        self.jugador_explotando = quien_explota
-        quien_explota.iniciar_explosion()
-        self.estado = "explosion"
+        quien_tiene_lleva.es_lleva = False
+        quien_recibe.es_lleva = True
+        self.tiempo_inicio_lleva = self.tiempo_ronda
 
     def _finalizar_ronda(self):
         """Finaliza la ronda actual y determina el ganador."""
@@ -323,45 +283,31 @@ class Juego:
             if jugador.es_lleva:
                 tiempo_lleva = self.tiempo_ronda - self.tiempo_inicio_lleva
                 self.puntaje_service.registrar_lleva(jugador.id, tiempo_lleva)
-                self.ganador_explosion = None
         self.estado = "fin_ronda"
 
     def _pantalla_fin_ronda(self):
         """Maneja la pantalla de fin de ronda mostrando resultados."""
-        if self.ganador_explosion:
-            ganador = self.ganador_explosion.id
-        else:
-            ganador = self.puntaje_service.obtener_ganador()
+        ganador = self.puntaje_service.obtener_ganador()
 
-        if not hasattr(self, '_ranking_registrado'):
+        if not self._ranking_registrado:
             self._registrar_en_ranking(ganador)
             self._ranking_registrado = True
 
         accion = self.interfaz.obtener_accion_fin_ronda(self.mouse_pos, self.click_realizado)
 
         if accion == "revancha":
-            self.gestor_modos.iniciar_multijugador(self, self.nombres)
-            self.estado = "countdown"
-            self.countdown_valor = 3
-            self.countdown_timer = 0
-            self._ranking_registrado = False
+            self._iniciar_partida()
             return
         elif accion == "menu":
-            self.estado = "menu"
-            self._ranking_registrado = False
+            self._volver_al_menu()
             return
 
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_RETURN:
-                self.gestor_modos.iniciar_multijugador(self, self.nombres)
-                self.estado = "countdown"
-                self.countdown_valor = 3
-                self.countdown_timer = 0
-                self._ranking_registrado = False
+                self._iniciar_partida()
                 return
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
-                self.estado = "menu"
-                self._ranking_registrado = False
+                self._volver_al_menu()
                 return
 
         self.pantalla.fill(self.config.COLOR_FONDO)
@@ -389,17 +335,34 @@ class Juego:
         """Maneja la pantalla de ranking."""
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
-                self.estado = "menu"
+                self._volver_al_menu()
                 return
 
         accion = self.interfaz.obtener_accion_ranking(self.mouse_pos, self.click_realizado)
         if accion == "volver":
-            self.estado = "menu"
+            self._volver_al_menu()
             return
 
         entradas = self.ranking_service.obtener_top(10)
         self.interfaz.dibujar_ranking(self.pantalla, entradas, self.mouse_pos)
         pygame.display.flip()
+
+    def _iniciar_partida(self):
+        """Prepara y arranca una partida, sin importar desde qué pantalla se invoque."""
+        self.gestor_modos.iniciar_multijugador(self, self.nombres)
+        self._ranking_registrado = False
+        self.estado = "countdown"
+        self.countdown_valor = 3
+        self.countdown_timer = 0
+
+    def _volver_al_menu(self):
+        """Vuelve al menú principal limpiando el estado de la partida."""
+        self.estado = "menu"
+        self.jugadores.clear()
+        self.jugadores_views.clear()
+        self.tiempo_ronda = 0
+        self.tiempo_inicio_lleva = 0
+        self._ranking_registrado = False
 
     def crear_jugador(self, x, y, id_jugador, teclas=None, nombre=None):
         """Crea un nuevo jugador y su vista correspondiente.
