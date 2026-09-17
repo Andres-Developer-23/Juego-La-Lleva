@@ -19,6 +19,7 @@ class JugadorIA(Jugador):
             nombre (str, optional): Nombre del jugador. Por defecto "IA".
         """
         super().__init__(x, y, id_jugador, nombre)
+        self.es_ia = True
         self.jugadores = []
         self.tiempo_reaccion = 0.2
         self._dir_x = 0.0

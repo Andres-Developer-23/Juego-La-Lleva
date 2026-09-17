@@ -8,6 +8,7 @@ permanezca como la lleva, y gana quien menos tiempo lo sea.
 
 - Modo 1 jugador contra la computadora (IA con dificultad ajustable)
 - Multijugador local (2 jugadores)
+- Multijugador en red por sockets (servidor + clientes en `juego_lleva/red/`)
 - Física realista: aceleración, inercia y diagonal normalizada (velocidad en píxeles por segundo)
 - Muñecos procedimentales animados (cabeza, cuerpo, brazos y piernas con marcha y giro)
 - Lleva inicial aleatoria
@@ -70,10 +71,11 @@ implementado:
   (entrada) e `interfaces` (abstracciones). Las reglas de la ronda, el ranking,
   las colisiones, los power-ups y la síntesis de audio son **servicios
   independientes**, desacoplados de la interfaz.
-- **Pruebas unitarias**: suite con **86 pruebas** usando `unittest`
+- **Pruebas unitarias**: suite con **113 pruebas** usando `unittest`
   (puntajes, reglas de la ronda, ranking con persistencia, colisiones y
   deslizamiento, toque por alcance, física del jugador y de la IA, power-ups,
-  configuración persistente, síntesis de audio y control táctil).
+  configuración persistente, síntesis de audio, control táctil y multijugador
+  en red).
 
 ### Interfaz y experiencia de usuario
 
@@ -206,6 +208,29 @@ El servidor muestra la IP local para abrir el juego desde el celular
 | En móvil: moverse | Cruces táctiles (J1 izquierda, J2 derecha) |
 | En móvil: pausar | Botón PAUSA (arriba a la derecha) |
 
+## Multijugador en red
+
+Además del local, el proyecto incluye un prototipo de multijugador por
+sockets. La lógica de red vive en `juego_lleva/red/` (protocolo, servidor y
+cliente desacoplados de la interfaz) y los launchers de la raíz levantan cada
+lado:
+
+```bash
+# Terminal 1: el servidor
+python servidor.py --host 0.0.0.0 --puerto 5555
+
+# Terminales 2 y 3: un cliente por jugador
+python cliente.py --host 127.0.0.1 --puerto 5555
+```
+
+El servidor asigna el id de cada jugador y retransmite sus posiciones. El
+cliente muestra una ventana pygame donde cada jugador se mueve con las flechas.
+También se puede iniciar cada componente como módulo:
+
+```bash
+python -m juego_lleva.red.servidor --puerto 5555
+```
+
 ## Cómo Jugar
 
 1. Elegir modo (Un Jugador contra la IA o Multijugador local)
@@ -244,7 +269,8 @@ core/juego.py  ── orquesta estados (menú, nombres, jugando, pausa…)
         ├── interfaces/  → contratos (abstracciones) de los servicios
         ├── views/       → renderizado (jugadores, entorno, efectos, power-ups)
         ├── ui/          → menús, HUD, toasts
-        └── controles/   → entrada (teclado y control táctil)
+        ├── controles/   → entrada (teclado y control táctil)
+        └── red/         → multijugador online (protocolo, cliente, servidor)
 ```
 
 Las reglas del juego no dependen de la interfaz: se pueden probar de forma
@@ -255,21 +281,30 @@ automática con la suite de pruebas sin abrir la ventana.
 ```
 Juego-La-Lleva/
 ├── juego_lleva/
-│   ├── core/           # Configuración y orquestación
-│   ├── models/         # Modelos de datos
-│   ├── views/          # Renderizado
-│   ├── ui/             # Interfaz de usuario
-│   ├── servicios/      # Lógica de negocio
-│   ├── controles/      # Manejo de entrada (teclado y táctil)
-│   ├── interfaces/     # Abstracciones
-│   ├── tests/          # 86 pruebas unitarias
-│   └── assets/         # Sprites y fondos
-├── web/                # Soporte para la versión navegador
-│   ├── vendor/         # browserfs.min.js versionado (la CDN ya no lo sirve)
-│   ├── cdn/            # Wheel wasm de pygame-ce servido localmente
-│   ├── compilar_web.py # Compila con pygbag y completa recursos
-│   └── probar_web.py   # Verificación con navegador headless
-├── servidor_web.py     # Servidor de la versión compilada (sin COEP)
+│   ├── __init__.py      # Paquete real del proyecto (versión y doc)
+│   ├── __main__.py      # Permite ejecutar con `python -m juego_lleva`
+│   ├── main.py          # Punto de entrada desktop/web
+│   ├── red/             # Multijugador en red
+│   │   ├── protocolo.py #   Tipos de mensaje y codificación JSON
+│   │   ├── servidor.py  #   ServidorMultijugador (sockets + hilos)
+│   │   └── cliente.py   #   ClienteMultijugador (solo red, sin UI)
+│   ├── core/            # Configuración y orquestación
+│   ├── models/          # Modelos de datos
+│   ├── views/           # Renderizado
+│   ├── ui/              # Interfaz de usuario
+│   ├── servicios/       # Lógica de negocio
+│   ├── controles/       # Manejo de entrada (teclado y táctil)
+│   ├── interfaces/      # Abstracciones
+│   ├── tests/           # 113 pruebas unitarias
+│   └── assets/          # Sprites y fondos (regenerables con generar_assets.py)
+├── cliente.py           # Launcher del cliente de red (pygame + red)
+├── servidor.py          # Launcher del servidor de red
+├── web/                 # Soporte para la versión navegador
+│   ├── vendor/          # browserfs.min.js versionado (la CDN ya no lo sirve)
+│   ├── cdn/             # Wheel wasm de pygame-ce servido localmente
+│   ├── compilar_web.py  # Compila con pygbag y completa recursos
+│   └── probar_web.py    # Verificación con navegador headless
+├── servidor_web.py      # Servidor de la versión compilada (sin COEP)
 └── requirements.txt
 ```
 
@@ -281,12 +316,23 @@ Ejecutar la suite de pruebas desde el directorio `juego_lleva/`:
 python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-Las **86 pruebas** cubren: puntajes, reglas de la ronda (regla clásica),
+Las **113 pruebas** cubren: puntajes, reglas de la ronda (regla clásica),
 ranking con persistencia, colisiones y deslizamiento contra cajas, rebote a
 alta velocidad, toque por alcance, física del jugador (inercia, diagonal
 normalizada, tropiezo) y de la IA (persecución/huida, reacción), power-ups,
-configuración persistente, síntesis de audio y control táctil para la versión
-web.
+configuración persistente, síntesis de audio, control táctil para la versión
+web, el multijugador en red (protocolo de mensajes e integración
+cliente-servidor) y las vistas gráficas (estilos de personaje, estados,
+cacheo de superficies y UI a 720p).
+
+### Regenerar fondos
+
+Los fondos `assets/fondos/campo.png` y `assets/fondos/menu_bg.jpg` se generan
+de forma procedural (parque nocturno y plaza con noria):
+
+```bash
+SDL_VIDEODRIVER=dummy python juego_lleva/assets/generar_assets.py
+```
 
 ## Requisitos
 

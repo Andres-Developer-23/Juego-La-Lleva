@@ -23,7 +23,20 @@ class Interfaz:
         self.fuente_countdown = pygame.font.SysFont(None, 120)
         self.tiempo_animacion = 0
         self.particulas = []
+        self._fondo_menu = None
+        self.escala_ui = self.config.ALTO_PANTALLA / 1080.0
         self._generar_particulas_menu()
+
+    def _u(self, valor):
+        """Escala un valor de layout 1080p a la resolución activa.
+
+        Args:
+            valor (float): Medida original diseñada para 1080p.
+
+        Returns:
+            int: Valor escalado para la pantalla actual.
+        """
+        return int(valor * self.escala_ui)
 
     def _generar_particulas_menu(self):
         """Genera partículas decorativas para el menú."""
@@ -102,21 +115,23 @@ class Interfaz:
         pantalla.blit(sombra_surface, (nuevo_x + 4, nuevo_y + 4))
 
         color = self.config.COLOR_BOTON_HOVER if hover else self.config.COLOR_BOTON
-        pygame.draw.rect(pantalla, color, (nuevo_x, nuevo_y, nuevo_ancho, nuevo_alto), border_radius=12)
-
-        gradient_surface = pygame.Surface((nuevo_ancho, nuevo_alto // 2), pygame.SRCALPHA)
-        gradient_surface.fill((255, 255, 255, 20))
-        pygame.draw.rect(gradient_surface, (255, 255, 255, 20),
-                       (0, 0, nuevo_ancho, nuevo_alto // 2), border_radius=12)
-        pantalla.blit(gradient_surface, (nuevo_x, nuevo_y))
-
-        pygame.draw.rect(pantalla, self.config.COLOR_BORDE, (nuevo_x, nuevo_y, nuevo_ancho, nuevo_alto), 2, border_radius=12)
+        gradiente = pygame.Surface((nuevo_ancho, nuevo_alto), pygame.SRCALPHA)
+        superior = tuple(min(255, c + 45) for c in color)
+        inferior = tuple(int(c * 0.82) for c in color)
+        for yy in range(nuevo_alto):
+            t_grad = yy / max(1, nuevo_alto - 1)
+            color_linea = tuple(int(superior[i] + (inferior[i] - superior[i]) * t_grad)
+                                for i in range(3))
+            pygame.draw.line(gradiente, color_linea, (0, yy), (nuevo_ancho, yy))
+        pantalla.blit(gradiente, (nuevo_x, nuevo_y))
 
         if hover:
             brillo = pygame.Surface((nuevo_ancho - 4, nuevo_alto - 4), pygame.SRCALPHA)
             brillo.fill((255, 255, 255, 25))
             pygame.draw.rect(brillo, (255, 255, 255, 25), (0, 0, nuevo_ancho - 4, nuevo_alto - 4), border_radius=10)
             pantalla.blit(brillo, (nuevo_x + 2, nuevo_y + 2))
+
+        pygame.draw.rect(pantalla, self.config.COLOR_BORDE, (nuevo_x, nuevo_y, nuevo_ancho, nuevo_alto), 2, border_radius=12)
 
         texto_render = self.fuente_boton.render(texto, True, (255, 255, 255))
         pantalla.blit(texto_render, (nuevo_x + nuevo_ancho // 2 - texto_render.get_width() // 2,
@@ -237,16 +252,17 @@ class Interfaz:
             duracion (float, optional): Duración de la ronda. Por defecto la configurada.
             efectos (dict, optional): Efectos activos por jugador (id -> lista de tipos).
         """
-        self.dibujar_panel(pantalla, 0, 0, self.config.ANCHO_PANTALLA, 70, 220)
+        u = self.escala_ui
+        self.dibujar_panel(pantalla, 0, 0, self.config.ANCHO_PANTALLA, self._u(70), 220)
 
         duracion_total = duracion if duracion is not None else self.config.DURACION_RONDA
         tiempo_restante = max(0, duracion_total - tiempo)
         porcentaje_tiempo = min(1.0, tiempo_restante / duracion_total) if duracion_total else 0
 
-        barra_x = 20
-        barra_y = 12
-        barra_ancho = 150
-        barra_alto = 16
+        barra_x = self._u(20)
+        barra_y = self._u(12)
+        barra_ancho = self._u(150)
+        barra_alto = self._u(16)
         pygame.draw.rect(pantalla, (40, 40, 60), (barra_x, barra_y, barra_ancho, barra_alto), border_radius=8)
         if porcentaje_tiempo > 0.3:
             color_barra = self.config.COLOR_LIBRE
@@ -259,9 +275,9 @@ class Interfaz:
         pygame.draw.rect(pantalla, (255, 255, 255, 60), (barra_x, barra_y, ancho_barra, barra_alto // 2), border_radius=6)
 
         texto_tiempo = self.fuente_hud.render(f"{int(tiempo_restante)}s", True, (255, 255, 255))
-        pantalla.blit(texto_tiempo, (barra_x + barra_ancho + 10, barra_y - 2))
+        pantalla.blit(texto_tiempo, (barra_x + barra_ancho + self._u(10), barra_y - 2))
 
-        x_jugador = 280
+        x_jugador = self._u(280)
         for jugador in jugadores:
             if jugador.es_lleva:
                 color = self.config.COLOR_LLEVA
@@ -273,26 +289,38 @@ class Interfaz:
                 indicador = "Libre"
                 color_texto = (255, 255, 255)
 
-            pygame.draw.rect(pantalla, color, (x_jugador, 20, 18, 18), border_radius=4)
-            pygame.draw.rect(pantalla, (255, 255, 255), (x_jugador, 20, 18, 18), 1, border_radius=4)
+            casilla = self._u(18)
+            pygame.draw.rect(pantalla, color, (x_jugador, self._u(20), casilla, casilla), border_radius=4)
+            pygame.draw.rect(pantalla, (255, 255, 255), (x_jugador, self._u(20), casilla, casilla), 1, border_radius=4)
 
             texto_j = self.fuente_hud.render(f"{jugador.nombre}: {indicador}", True, color_texto)
-            pantalla.blit(texto_j, (x_jugador + 24, 18))
+            pantalla.blit(texto_j, (x_jugador + self._u(24), self._u(18)))
 
             tiempo_j = puntajes.get(jugador.id, 0)
             texto_t = self.fuente_pequena.render(f"({int(tiempo_j)}s)", True, self.config.COLOR_PLATA)
-            pantalla.blit(texto_t, (x_jugador + 24 + texto_j.get_width() + 5, 22))
+            pantalla.blit(texto_t, (x_jugador + self._u(24) + texto_j.get_width() + 5, self._u(22)))
 
             if efectos and efectos.get(jugador.id):
                 etiqueta_efectos = self._describir_efectos(efectos.get(jugador.id), jugador)
                 if etiqueta_efectos:
                     texto_efecto = self.fuente_pequena.render(etiqueta_efectos, True, self.config.COLOR_DORADO)
-                    pantalla.blit(texto_efecto, (x_jugador + 24, 42))
+                    pantalla.blit(texto_efecto, (x_jugador + self._u(24), self._u(42)))
 
-            x_jugador += 240
+            x_jugador += self._u(240)
 
         texto_salir = self.fuente_pequena.render("P: Pausa", True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA - 80, 28))
+        pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA - self._u(80), self._u(28)))
+
+    def _cargar_fondo_menu(self):
+        """Carga y escala el fondo del menú la primera vez que se dibuja."""
+        if self._fondo_menu is None:
+            try:
+                fondo_menu = pygame.image.load(self.config.FONDO_MENU).convert()
+                self._fondo_menu = pygame.transform.scale(
+                    fondo_menu, (self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA))
+            except (pygame.error, OSError):
+                self._fondo_menu = False
+        return self._fondo_menu
 
     def dibujar_menu_principal(self, pantalla, mouse_pos=None, seleccion=None):
         """Dibuja el menú principal del juego.
@@ -302,14 +330,13 @@ class Interfaz:
             mouse_pos (tuple, optional): Posición del mouse para efectos hover.
             seleccion (int, optional): Índice de la opción seleccionada con teclado.
         """
-        try:
-            fondo_menu = pygame.image.load(self.config.FONDO_MENU).convert()
-            fondo_menu = pygame.transform.scale(fondo_menu, (self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA))
+        fondo_menu = self._cargar_fondo_menu()
+        if fondo_menu:
             pantalla.blit(fondo_menu, (0, 0))
             overlay = pygame.Surface((self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 120))
             pantalla.blit(overlay, (0, 0))
-        except (pygame.error, OSError):
+        else:
             pantalla.fill(self.config.COLOR_FONDO)
 
         for i in range(0, self.config.ALTO_PANTALLA, 3):
@@ -320,7 +347,8 @@ class Interfaz:
 
         self.dibujar_particulas_menu(pantalla)
 
-        titulo_y = 100 + math.sin(self.tiempo_animacion * 1.5) * 8
+        u = self.escala_ui
+        titulo_y = self._u(100) + int(math.sin(self.tiempo_animacion * 1.5) * 8 * u)
 
         for desplazamiento in range(6, 0, -1):
             alpha = int(40 - desplazamiento * 6)
@@ -335,9 +363,12 @@ class Interfaz:
         pantalla.blit(brillo_titulo, (self.config.ANCHO_PANTALLA // 2 - texto_titulo.get_width() // 2, titulo_y))
 
         texto_sub = self.fuente_subtitulo.render("Juego Tradicional Colombiano", True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_sub, (self.config.ANCHO_PANTALLA // 2 - texto_sub.get_width() // 2, 195))
+        pantalla.blit(texto_sub, (self.config.ANCHO_PANTALLA // 2 - texto_sub.get_width() // 2, self._u(195)))
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 190, 240, 380, 385, 160)
+        ancho_panel = self._u(380)
+        alto_panel = self._u(385)
+        x_panel = self.config.ANCHO_PANTALLA // 2 - ancho_panel // 2
+        self.dibujar_panel(pantalla, x_panel, self._u(240), ancho_panel, alto_panel, 160)
 
         botones = [
             ("Un Jugador", 260),
@@ -348,12 +379,16 @@ class Interfaz:
             ("Salir", 535)
         ]
 
+        ancho_boton = self._u(280)
+        alto_boton = self._u(48)
+        x_boton = self.config.ANCHO_PANTALLA // 2 - ancho_boton // 2
         for i, (texto_boton, y) in enumerate(botones):
-            hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 48)
-            self.dibujar_boton(pantalla, texto_boton, self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 48, hover)
+            y_btn = self._u(y)
+            hover = mouse_pos and self._dentro_boton(mouse_pos, x_boton, y_btn, ancho_boton, alto_boton)
+            self.dibujar_boton(pantalla, texto_boton, x_boton, y_btn, ancho_boton, alto_boton, hover)
             if seleccion == i:
                 pygame.draw.rect(pantalla, self.config.COLOR_DORADO,
-                               (self.config.ANCHO_PANTALLA // 2 - 140, y, 280, 48), 2, border_radius=12)
+                                 (x_boton, y_btn, ancho_boton, alto_boton), 2, border_radius=12)
 
         self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 195, 665, 390, 75, 130)
         controles = "Flechas + Enter: navegar   |   1, 2, 3: atajos"
@@ -594,20 +629,30 @@ class Interfaz:
         pantalla.fill(self.config.COLOR_FONDO)
         self.dibujar_particulas_menu(pantalla)
 
+        centro = (self.config.ANCHO_PANTALLA // 2, self.config.ALTO_PANTALLA // 2)
+        radio = self._u(112)
+        anillo = pygame.Surface((radio * 2, radio * 2), pygame.SRCALPHA)
+        pygame.draw.circle(anillo, (*self.config.COLOR_DORADO, 40), (radio, radio), radio, self._u(8))
+        giro = (self.tiempo_animacion % 1.0) * math.pi * 2
+        pygame.draw.arc(anillo, (*self.config.COLOR_DORADO, 235),
+                        (self._u(4), self._u(4), radio * 2 - self._u(8), radio * 2 - self._u(8)),
+                        giro, giro + 2.2, max(5, self._u(9)))
+        pantalla.blit(anillo, (centro[0] - radio, centro[1] - radio))
+
         escala = 1.0 + abs(math.sin(self.tiempo_animacion * 4)) * 0.1
         texto = self.fuente_countdown.render(str(numero), True, self.config.COLOR_DORADO)
         texto_escalado = pygame.transform.rotozoom(texto, 0, escala)
 
         sombra = self.fuente_countdown.render(str(numero), True, (0, 0, 0))
         sombra_escalada = pygame.transform.rotozoom(sombra, 0, escala)
-        pantalla.blit(sombra_escalada, (self.config.ANCHO_PANTALLA // 2 - sombra_escalada.get_width() // 2 + 4,
-                                        self.config.ALTO_PANTALLA // 2 - sombra_escalada.get_height() // 2 + 4))
-        pantalla.blit(texto_escalado, (self.config.ANCHO_PANTALLA // 2 - texto_escalado.get_width() // 2,
-                                       self.config.ALTO_PANTALLA // 2 - texto_escalado.get_height() // 2))
+        pantalla.blit(sombra_escalada, (centro[0] - sombra_escalada.get_width() // 2 + 4,
+                                        centro[1] - sombra_escalada.get_height() // 2 + 4))
+        pantalla.blit(texto_escalado, (centro[0] - texto_escalado.get_width() // 2,
+                                       centro[1] - texto_escalado.get_height() // 2))
 
         texto_preparado = self.fuente_subtitulo.render("Preparate...", True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_preparado, (self.config.ANCHO_PANTALLA // 2 - texto_preparado.get_width() // 2,
-                                        self.config.ALTO_PANTALLA // 2 + 80))
+        pantalla.blit(texto_preparado, (centro[0] - texto_preparado.get_width() // 2,
+                                        centro[1] + self._u(80)))
 
     def dibujar_pausa(self, pantalla, mouse_pos=None):
         """Dibuja la pantalla de pausa sobre la partida.
@@ -648,39 +693,60 @@ class Interfaz:
         overlay.fill((0, 0, 0, 180))
         pantalla.blit(overlay, (0, 0))
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 260, 130, 520, 450, 230)
+        panel_ancho = self._u(520)
+        panel_alto = self._u(450)
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - panel_ancho // 2,
+                           self._u(130), panel_ancho, panel_alto, 230)
 
         texto_titulo = self.fuente_grande.render("Fin de Ronda", True, self.config.COLOR_DORADO)
-        pantalla.blit(texto_titulo, (self.config.ANCHO_PANTALLA // 2 - texto_titulo.get_width() // 2, 160))
+        pantalla.blit(texto_titulo, (self.config.ANCHO_PANTALLA // 2 - texto_titulo.get_width() // 2, self._u(160)))
 
         if ganador is not None and jugadores:
             ganador_nombre = next((j.nombre for j in jugadores if j.id == ganador), f"Jugador {ganador + 1}")
             texto_ganador = self.fuente_grande.render(f"{ganador_nombre} Gana!", True, (255, 255, 255))
         else:
             texto_ganador = self.fuente_grande.render("Empate!", True, (255, 255, 255))
-        pantalla.blit(texto_ganador, (self.config.ANCHO_PANTALLA // 2 - texto_ganador.get_width() // 2, 250))
+        pantalla.blit(texto_ganador, (self.config.ANCHO_PANTALLA // 2 - texto_ganador.get_width() // 2, self._u(250)))
 
-        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 190, 320, 380, 130, 160)
+        tabla_ancho = self._u(380)
+        self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - tabla_ancho // 2,
+                           self._u(320), tabla_ancho, self._u(130), 160)
         texto_titulo_tabla = self.fuente_boton.render("Tabla de Tiempos", True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_titulo_tabla, (self.config.ANCHO_PANTALLA // 2 - texto_titulo_tabla.get_width() // 2, 330))
+        pantalla.blit(texto_titulo_tabla, (self.config.ANCHO_PANTALLA // 2 - texto_titulo_tabla.get_width() // 2, self._u(330)))
 
-        y = 370
-        for id_j, tiempo in sorted(puntajes.items(), key=lambda x: x[1]):
+        colores_medalla = {1: (255, 215, 0), 2: (192, 192, 192), 3: (205, 127, 50)}
+        y = self._u(370)
+        for posicion, (id_j, tiempo) in enumerate(sorted(puntajes.items(), key=lambda x: x[1]), start=1):
             nombre = next((j.nombre for j in jugadores if j.id == id_j), f"J{id_j + 1}") if jugadores else f"J{id_j + 1}"
             color = self.config.COLOR_DORADO if id_j == ganador else (255, 255, 255)
             texto = self.fuente_boton.render(f"{nombre}: {int(tiempo)}s", True, color)
+
+            if posicion <= 3 and colores_medalla.get(posicion):
+                radio_medalla = self._u(11)
+                mx = self.config.ANCHO_PANTALLA // 2 - texto.get_width() // 2 - radio_medalla - self._u(12)
+                my = y + texto.get_height() // 2
+                pygame.draw.circle(pantalla, colores_medalla[posicion], (mx, my), radio_medalla)
+                pygame.draw.circle(pantalla, (255, 255, 255), (mx, my), radio_medalla, 1)
+                texto_pos = self.fuente_pequena.render(str(posicion), True, (20, 20, 30))
+                pantalla.blit(texto_pos, (mx - texto_pos.get_width() // 2, my - texto_pos.get_height() // 2))
+
             pantalla.blit(texto, (self.config.ANCHO_PANTALLA // 2 - texto.get_width() // 2, y))
-            y += 35
+            y += self._u(35)
 
-        hover_revancha = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 210, 510, 190, 50)
-        hover_menu = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 + 20, 510, 190, 50)
+        btn_ancho = self._u(190)
+        btn_alto = self._u(50)
+        y_btn = self._u(510)
+        x_revancha = self.config.ANCHO_PANTALLA // 2 - btn_ancho - self._u(20)
+        x_menu = self.config.ANCHO_PANTALLA // 2 + self._u(20)
+        hover_revancha = mouse_pos and self._dentro_boton(mouse_pos, x_revancha, y_btn, btn_ancho, btn_alto)
+        hover_menu = mouse_pos and self._dentro_boton(mouse_pos, x_menu, y_btn, btn_ancho, btn_alto)
 
-        self.dibujar_boton(pantalla, "Revancha", self.config.ANCHO_PANTALLA // 2 - 210, 510, 190, 50, hover_revancha)
-        self.dibujar_boton(pantalla, "Menu", self.config.ANCHO_PANTALLA // 2 + 20, 510, 190, 50, hover_menu)
+        self.dibujar_boton(pantalla, "Revancha", x_revancha, y_btn, btn_ancho, btn_alto, hover_revancha)
+        self.dibujar_boton(pantalla, "Menu", x_menu, y_btn, btn_ancho, btn_alto, hover_menu)
 
         texto_atajos = self.fuente_pequena.render(
             "ENTER/R: Revancha   |   ESC: Menu", True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_atajos, (self.config.ANCHO_PANTALLA // 2 - texto_atajos.get_width() // 2, 600))
+        pantalla.blit(texto_atajos, (self.config.ANCHO_PANTALLA // 2 - texto_atajos.get_width() // 2, self._u(600)))
 
     def obtener_accion_fin_ronda(self, mouse_pos, click):
         """Obtiene la acción de fin de ronda según la posición del mouse y el click.
@@ -694,9 +760,14 @@ class Interfaz:
         """
         if not click:
             return None
-        if self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 210, 510, 190, 50):
+        btn_ancho = self._u(190)
+        btn_alto = self._u(50)
+        y_btn = self._u(510)
+        x_revancha = self.config.ANCHO_PANTALLA // 2 - btn_ancho - self._u(20)
+        x_menu = self.config.ANCHO_PANTALLA // 2 + self._u(20)
+        if self._dentro_boton(mouse_pos, x_revancha, y_btn, btn_ancho, btn_alto):
             return "revancha"
-        if self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 + 20, 510, 190, 50):
+        if self._dentro_boton(mouse_pos, x_menu, y_btn, btn_ancho, btn_alto):
             return "menu"
         return None
 

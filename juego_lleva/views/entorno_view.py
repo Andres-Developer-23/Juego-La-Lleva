@@ -8,9 +8,31 @@ from views.obstaculo_view import ObstaculoView
 class EntornoView:
     """Clase que maneja la presentación visual del entorno."""
 
+    COLOR_PUNTO = (100, 100, 140)
+
     def __init__(self):
         """Inicializa la vista del entorno con un ObstaculoView delegado."""
         self.obstaculo_view = ObstaculoView()
+        self._puntos_cache = {}
+
+    def _superficie_punto(self, tamaño, alpha):
+        """Devuelve (cacheando) la superficie de un punto de fondo.
+
+        Args:
+            tamaño (int): Tamaño del punto (radio).
+            alpha (int): Opacidad deseada (0-255).
+
+        Returns:
+            pygame.Surface: Punto pre-renderizado reutilizable.
+        """
+        clave = (tamaño, alpha)
+        if clave not in self._puntos_cache:
+            lado = tamaño * 2
+            superficie = pygame.Surface((lado, lado), pygame.SRCALPHA)
+            pygame.draw.circle(superficie, (*self.COLOR_PUNTO, alpha),
+                               (tamaño, tamaño), tamaño)
+            self._puntos_cache[clave] = superficie
+        return self._puntos_cache[clave]
 
     def renderizar(self, pantalla, entorno, tiempo_animacion=0):
         """Renderiza el entorno completo en la pantalla.
@@ -24,7 +46,5 @@ class EntornoView:
             self.obstaculo_view.renderizar(pantalla, obs, tiempo_animacion)
 
         for p in entorno.particulas_fondo:
-            surface = pygame.Surface((p['tamaño'] * 2, p['tamaño'] * 2), pygame.SRCALPHA)
-            pygame.draw.circle(surface, (100, 100, 140, p['alpha']),
-                             (p['tamaño'], p['tamaño']), p['tamaño'])
-            pantalla.blit(surface, (int(p['x']) - p['tamaño'], int(p['y']) - p['tamaño']))
+            superficie = self._superficie_punto(p['tamaño'], p['alpha'])
+            pantalla.blit(superficie, (int(p['x']) - p['tamaño'], int(p['y']) - p['tamaño']))

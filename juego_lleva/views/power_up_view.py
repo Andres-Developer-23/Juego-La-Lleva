@@ -26,6 +26,26 @@ class PowerUpView:
         """Inicializa la vista de power-ups."""
         self.config = Config()
         self.fuente = pygame.font.SysFont(None, 30)
+        self._halos = {}
+
+    def _superficie_halo(self, color, radio, alpha):
+        """Devuelve (cacheando) el halo translúcido de un power-up.
+
+        Args:
+            color (tuple): Color RGB del halo.
+            radio (int): Radio del halo.
+            alpha (int): Nivel de opacidad del halo (0-255).
+
+        Returns:
+            pygame.Surface: Halo pre-renderizado reutilizable.
+        """
+        clave = (color, radio, alpha)
+        if clave not in self._halos:
+            superficie = pygame.Surface((70, 70), pygame.SRCALPHA)
+            pygame.draw.circle(superficie, (*color, int(alpha * 0.35)),
+                               (35, 35), radio)
+            self._halos[clave] = superficie
+        return self._halos[clave]
 
     def _dibujar_gema(self, pantalla, centro, radio, color, rotacion):
         """Dibuja una gema en forma de diamante rotado.
@@ -62,10 +82,8 @@ class PowerUpView:
                 alpha = 110
 
             color = self.COLORES.get(pu.tipo, self.config.COLOR_DORADO)
-            halo = pygame.Surface((70, 70), pygame.SRCALPHA)
             radio_halo = 26 + math.sin(tiempo_animacion * 3) * 4
-            pygame.draw.circle(halo, (*color, int(alpha * 0.35)),
-                               (35, 35), int(radio_halo))
+            halo = self._superficie_halo(color, int(radio_halo), alpha)
             pantalla.blit(halo, (pu.x - 35, pu.y - 35))
 
             radio_gema = 14 + math.sin(tiempo_animacion * 4) * 2

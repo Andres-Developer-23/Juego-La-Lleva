@@ -466,10 +466,13 @@ class Juego:
                 del self.efectos_activos[id_jugador]
 
         for id_jugador, tipo in vencidos:
+            jugador = next((j for j in self.jugadores if j.id == id_jugador), None)
+            if jugador is None:
+                continue
             if tipo == "velocidad":
-                jugador = next((j for j in self.jugadores if j.id == id_jugador), None)
-                if jugador:
-                    jugador.factor_velocidad = 1.0
+                jugador.factor_velocidad = 1.0
+            elif tipo == "congelar":
+                jugador.congelado = 0.0
 
     def _actualizar_power_ups(self, delta_tiempo):
         """Genera, envejece y recolecta power-ups durante la ronda.
@@ -517,6 +520,7 @@ class Juego:
             self._timers_efectos(id_objetivo)["velocidad"] = duracion
         elif tipo == "congelar":
             self._timers_efectos(id_objetivo)["congelar"] = duracion
+            objetivo.congelado = duracion
         elif tipo == "escudo":
             objetivo.escudo = True
 

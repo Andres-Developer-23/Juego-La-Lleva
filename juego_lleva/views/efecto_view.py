@@ -22,6 +22,25 @@ class EfectoView:
     def __init__(self):
         """Inicializa la vista de efectos sin estados persistentes."""
         self.tiempo_animacion = 0
+        self._anillos = {}
+
+    def _superficie_anillo(self, color, radio, alfa):
+        """Devuelve (cacheando) la superficie circular de un anillo.
+
+        Args:
+            color (tuple): Color RGB del anillo.
+            radio (int): Radio del anillo.
+            alfa (int): Opacidad del anillo (0-255).
+
+        Returns:
+            pygame.Surface: Anillo pre-renderizado reutilizable.
+        """
+        clave = (color, radio, alfa)
+        if clave not in self._anillos:
+            capa = pygame.Surface((radio * 2, radio * 2), pygame.SRCALPHA)
+            pygame.draw.circle(capa, (*color, alfa), (radio, radio), radio, 4)
+            self._anillos[clave] = capa
+        return self._anillos[clave]
 
     def _color_efecto(self, efecto):
         """Devuelve el color del anillo según el efecto.
@@ -72,13 +91,21 @@ class EfectoView:
             alfa = int(255 * (1 - progreso))
             color = self._color_efecto(efecto)
 
-            radio = int(12 + progreso * 150)
-            anillo = pygame.Surface((radio * 2, radio * 2), pygame.SRCALPHA)
-            pygame.draw.circle(anillo, (*color, alfa),
-                               (radio, radio), radio, 4)
-            pantalla.blit(anillo, (int(efecto['x']) - radio, int(efecto['y']) - radio))
-
+            x = efecto['x']
+            y = efecto['y']
             es_anillo_solo = efecto.get("anillo_solo", False)
+
+            anillo = self._superficie_anillo(color, int(12 + progreso * 150), alfa)
+            pantalla.blit(anillo, (int(x) - anillo.get_width() // 2, int(y) - anillo.get_height() // 2))
+
+            anillo_interno = self._superficie_anillo(color, int(10 + progreso * 85), min(255, int(alfa * 1.3)))
+            pantalla.blit(anillo_interno, (int(x) - anillo_interno.get_width() // 2, int(y) - anillo_interno.get_height() // 2))
+
+            radio_flash = max(2, int(16 * (1 - progreso)))
+            flash = self._superficie_anillo((255, 255, 255), radio_flash, int(alfa * 0.6))
+            pantalla.blit(flash, (int(x) - radio_flash, int(y) - radio_flash),
+                          special_flags=pygame.BLEND_ADD)
+
             for particula in efecto['particulas']:
                 alfa_p = int(255 * (particula['vida'] / 0.7))
                 radio_p = max(2, int(6 * particula['vida'] / 0.7))
@@ -86,7 +113,8 @@ class EfectoView:
                 pygame.draw.circle(superficie, (*color, alfa_p),
                                    (radio_p, radio_p), radio_p)
                 pantalla.blit(superficie, (int(particula['x']) - radio_p,
-                                           int(particula['y']) - radio_p))
+                                           int(particula['y']) - radio_p),
+                              special_flags=pygame.BLEND_ADD)
 
     def crear_toque(self, x, y, color=None, cantidad=14):
         """Crea un efecto de toque en la posición indicada.
