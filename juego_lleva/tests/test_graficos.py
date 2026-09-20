@@ -93,17 +93,23 @@ class TestJugadorView(unittest.TestCase):
                 self.vista.renderizar(pantalla, j, 0.016)
 
     def test_rastro_potenciado_es_dorado(self):
+        from juego_lleva.servicios.particula_service import ParticulaService
+        svc = ParticulaService()
         j = JugadorHumano(300, 300, 0, {})
         j.vx, j.velocidad_abs = 150, 150.0
         j.factor_velocidad = 1.6
-        self.vista._agregar_particula_rastro(j)
-        self.assertEqual(self.vista.particulas_rastro[-1]['color'], (255, 235, 120))
+        particula = svc.agregar_rastro(j, Config())
+        self.assertIsNotNone(particula)
+        self.assertEqual(particula['color'], (255, 235, 120))
 
     def test_rastro_normal_usa_color_jugador(self):
+        from juego_lleva.servicios.particula_service import ParticulaService
+        svc = ParticulaService()
         j = JugadorHumano(300, 300, 0, {})
         j.vx, j.velocidad_abs = 150, 150.0
-        self.vista._agregar_particula_rastro(j)
-        self.assertEqual(self.vista.particulas_rastro[-1]['color'], Config.COLOR_JUGADOR_1)
+        particula = svc.agregar_rastro(j, Config())
+        self.assertIsNotNone(particula)
+        self.assertEqual(particula['color'], Config.COLOR_JUGADOR_1)
 
 
 class TestCacheSuperficies(unittest.TestCase):
@@ -188,9 +194,9 @@ class TestCongeladoEnModelo(unittest.TestCase):
         ana = juego.jugadores[0]
         beto = juego.jugadores[1]
 
-        juego._recoger_power_up(ana, PowerUp(0, 0, "congelar"))
+        juego.ctrl_partida._recoger_power_up(ana, PowerUp(0, 0, "congelar"))
 
-        self.assertGreater(juego._timers_efectos(1).get("congelar", 0), 0)
+        self.assertGreater(juego.efectos_activos.get(1, {}).get("congelar", 0), 0)
         self.assertGreater(beto.congelado, 0)
 
     def test_al_vencer_el_congelar_se_restablece(self):
@@ -200,11 +206,11 @@ class TestCongeladoEnModelo(unittest.TestCase):
         ana = juego.jugadores[0]
         beto = juego.jugadores[1]
 
-        juego._recoger_power_up(ana, PowerUp(0, 0, "congelar"))
-        duracion = juego._timers_efectos(1)["congelar"]
-        juego._actualizar_efectos_activos(duracion + 0.1)
+        juego.ctrl_partida._recoger_power_up(ana, PowerUp(0, 0, "congelar"))
+        duracion = juego.efectos_activos[1]["congelar"]
+        juego.ctrl_partida.actualizar_efectos_activos(duracion + 0.1)
 
-        self.assertEqual(juego._timers_efectos(1).get("congelar", 0), 0)
+        self.assertEqual(juego.efectos_activos.get(1, {}).get("congelar", 0), 0)
         self.assertEqual(beto.congelado, 0)
 
 

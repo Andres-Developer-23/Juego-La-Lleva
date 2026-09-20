@@ -36,7 +36,7 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         juego.tiempo_ronda = 10
         juego.tiempo_inicio_lleva = 0
         beto, ana = juego.jugadores[1], juego.jugadores[0]
-        juego._transferir_lleva(ana, beto)
+        juego.ctrl_partida._transferir_lleva(ana, beto)
 
         self.assertFalse(ana.es_lleva)
         self.assertTrue(beto.es_lleva)
@@ -45,7 +45,7 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         self.assertGreater(len(juego.efectos[0]['particulas']), 0)
 
         juego.tiempo_ronda = 60
-        juego._finalizar_ronda()
+        juego.ctrl_partida.finalizar_ronda()
 
         self.assertEqual(juego.puntaje_service.tiempos_lleva[0], 10)
         self.assertEqual(juego.puntaje_service.tiempos_lleva[1], 50)
@@ -59,7 +59,7 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         ana, beto = juego.jugadores[0], juego.jugadores[1]
 
         beto.escudo = True
-        juego._procesar_colision(ana, beto)
+        juego.ctrl_partida.procesar_colision(ana, beto)
 
         self.assertTrue(ana.es_lleva)
         self.assertFalse(beto.escudo)
@@ -72,14 +72,14 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         ana, beto = juego.jugadores[0], juego.jugadores[1]
 
         creado = PowerUp(0, 0, "velocidad")
-        juego._recoger_power_up(ana, creado)
+        juego.ctrl_partida._recoger_power_up(ana, creado)
         self.assertEqual(ana.factor_velocidad, Config.FACTOR_VELOCIDAD_POWER)
-        self.assertIn("velocidad", juego._timers_efectos(0))
+        self.assertIn("velocidad", juego.efectos_activos.get(0, {}))
 
-        juego._recoger_power_up(ana, PowerUp(0, 0, "congelar"))
-        self.assertGreater(juego._timers_efectos(1).get("congelar", 0), 0)
+        juego.ctrl_partida._recoger_power_up(ana, PowerUp(0, 0, "congelar"))
+        self.assertGreater(juego.efectos_activos.get(1, {}).get("congelar", 0), 0)
 
-        juego._recoger_power_up(beto, PowerUp(0, 0, "escudo"))
+        juego.ctrl_partida._recoger_power_up(beto, PowerUp(0, 0, "escudo"))
         self.assertTrue(beto.escudo)
 
     def test_congelado_detiene_movimiento(self):
@@ -87,22 +87,22 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         juego.gestor_modos.iniciar_multijugador(juego, ["Ana", "Beto"])
         juego.set_lleva_inicial(0)
         beto = juego.jugadores[1]
-        juego._timers_efectos(1)["congelar"] = 3.0
+        juego.efectos_activos.setdefault(1, {})["congelar"] = 3.0
 
         x_antes, y_antes = beto.x, beto.y
         juego._bucle_juego(0.5)
         self.assertEqual(beto.x, x_antes)
         self.assertEqual(beto.y, y_antes)
-        self.assertGreater(juego._timers_efectos(1).get("congelar", 0), 0)
+        self.assertGreater(juego.efectos_activos.get(1, {}).get("congelar", 0), 0)
 
     def test_congelar_expira_y_se_limpia(self):
         juego = self.juego
         juego.gestor_modos.iniciar_multijugador(juego, ["Ana", "Beto"])
         juego.set_lleva_inicial(0)
-        juego._timers_efectos(1)["congelar"] = 0.4
+        juego.efectos_activos.setdefault(1, {})["congelar"] = 0.4
 
         juego._bucle_juego(0.5)
-        self.assertNotIn("congelar", juego._timers_efectos(1))
+        self.assertNotIn("congelar", juego.efectos_activos.get(1, {}))
 
     def test_dificultad_aplicada_a_ia(self):
         juego = self.juego
@@ -138,23 +138,23 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         juego = self.juego
         self.assertEqual(juego.opcion_menu, 0)
         juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN)]
-        juego._menu_principal()
+        juego.ctrl_menu.menu_principal()
         self.assertEqual(juego.opcion_menu, 1)
         juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN)]
-        juego._menu_principal()
+        juego.ctrl_menu.menu_principal()
         self.assertEqual(juego.opcion_menu, 2)
         juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)]
-        juego._menu_principal()
+        juego.ctrl_menu.menu_principal()
         self.assertEqual(juego.estado, "ayuda")
 
     def test_fin_ronda_tecla_r_revancha(self):
         juego = self.juego
         juego.gestor_modos.iniciar_multijugador(juego, ["Ana", "Beto"])
         juego.tiempo_ronda = 60
-        juego._finalizar_ronda()
+        juego.ctrl_partida.finalizar_ronda()
         self.assertEqual(juego.estado, "fin_ronda")
         juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r)]
-        juego._pantalla_fin_ronda()
+        juego.ctrl_pantallas.pantalla_fin_ronda()
         self.assertEqual(juego.estado, "countdown")
 
 

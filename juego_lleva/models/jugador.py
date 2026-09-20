@@ -1,8 +1,8 @@
 """Modelo que representa a un jugador en el juego."""
 
-import pygame
 from juego_lleva.core.config import Config
 from juego_lleva.interfaces.movible import Movible
+from juego_lleva.models.rect import Rect
 
 
 class Jugador(Movible):
@@ -59,10 +59,10 @@ class Jugador(Movible):
         """Obtiene el rectángulo de colisión del jugador.
 
         Returns:
-            pygame.Rect: Rectángulo que define los límites del jugador para colisiones.
+            Rect: Rectángulo que define los límites del jugador para colisiones.
         """
         margen = int(self.config.TAMAÑO_JUGADOR * 0.2)
-        return pygame.Rect(
+        return Rect(
             self.x + margen, self.y + margen,
             self.config.TAMAÑO_JUGADOR - margen * 2,
             self.config.TAMAÑO_JUGADOR - margen * 2

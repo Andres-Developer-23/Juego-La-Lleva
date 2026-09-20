@@ -7,7 +7,6 @@ escudo giratorio, congelamiento, estelas de velocidad y expresión de "la lleva"
 """
 
 import math
-import random
 
 import pygame
 from juego_lleva.core.config import Config
@@ -48,8 +47,6 @@ class JugadorView:
         self.config = Config()
         self.tiempo_animacion = 0
         self.fase_caminar = 0
-        self.particulas_rastro = []
-        self.trail_timer = 0
         self.s = self.config.TAMAÑO_JUGADOR / 95.0
         self._fuente_nombre = pygame.font.SysFont(None, 24)
 
@@ -110,14 +107,7 @@ class JugadorView:
             tiempo_delta (float): Tiempo transcurrido desde la última actualización.
         """
         self.tiempo_animacion += tiempo_delta
-        self.trail_timer += tiempo_delta
         self.fase_caminar += jugador.velocidad_abs * tiempo_delta * 0.022
-
-        if self.trail_timer > 0.05:
-            self._agregar_particula_rastro(jugador)
-            self.trail_timer = 0
-
-        self._actualizar_particulas(tiempo_delta)
 
         cx = jugador.x + self.config.TAMAÑO_JUGADOR // 2
         pie_y = jugador.y + self.config.TAMAÑO_JUGADOR
@@ -476,47 +466,3 @@ class JugadorView:
                 if dx or dy:
                     pantalla.blit(contorno, (cx - texto.get_width() // 2 + dx, ty + dy))
         pantalla.blit(texto, (cx - texto.get_width() // 2, ty))
-
-    def _actualizar_particulas(self, delta_tiempo):
-        """Actualiza el estado de las partículas de rastro.
-
-        Args:
-            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
-        """
-        nuevas_particulas = []
-        for p in self.particulas_rastro:
-            p['vida'] -= delta_tiempo * 2
-            p['x'] += p['velocidad_x'] * delta_tiempo
-            p['y'] += p['velocidad_y'] * delta_tiempo
-            p['tamaño'] *= 0.95
-            if p['vida'] > 0:
-                nuevas_particulas.append(p)
-        self.particulas_rastro = nuevas_particulas
-
-    def _agregar_particula_rastro(self, jugador):
-        """Agrega una nueva partícula de rastro al jugador.
-
-        Args:
-            jugador: Objeto jugador para obtener posición y color.
-        """
-        velocidad = jugador.velocidad_abs
-        potenciado = getattr(jugador, "factor_velocidad", 1.0) > 1.0
-
-        if velocidad > 60:
-            color = self.config.COLOR_LLEVA if jugador.es_lleva else (
-                self.config.COLOR_JUGADOR_1 if jugador.id == 0 else self.config.COLOR_JUGADOR_2
-            )
-            if potenciado:
-                color = (255, 235, 120)
-            tamaño = random.randint(2, 4) if not jugador.es_lleva else random.randint(3, 6)
-            if potenciado:
-                tamaño = random.randint(4, 7)
-            self.particulas_rastro.append({
-                'x': jugador.x + self.config.TAMAÑO_JUGADOR // 2,
-                'y': jugador.y + self.config.TAMAÑO_JUGADOR,
-                'velocidad_x': random.uniform(-30, 30),
-                'velocidad_y': -jugador.vy * 0.15 + random.uniform(-10, 10),
-                'tamaño': tamaño,
-                'color': color,
-                'vida': 1.0
-            })

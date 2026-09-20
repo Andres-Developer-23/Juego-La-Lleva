@@ -1,8 +1,7 @@
 """Modelo de power-up que aparece en el campo durante la ronda."""
 
-import pygame
-
 from juego_lleva.core.config import Config
+from juego_lleva.models.rect import Rect
 
 
 class PowerUp:
@@ -31,10 +30,10 @@ class PowerUp:
         """Devuelve el rectángulo del power-up centrado en su posición.
 
         Returns:
-            pygame.Rect: Rectángulo que ocupa el power-up.
+            Rect: Rectángulo que ocupa el power-up.
         """
         tamaño = self.config.POWER_UP_TAMAÑO
-        return pygame.Rect(self.x - tamaño // 2, self.y - tamaño // 2, tamaño, tamaño)
+        return Rect(self.x - tamaño // 2, self.y - tamaño // 2, tamaño, tamaño)
 
     def expirado(self):
         """Indica si el power-up agotó su tiempo en el campo.

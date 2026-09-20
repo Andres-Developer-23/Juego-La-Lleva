@@ -3,8 +3,8 @@
 import math
 import random
 
-import pygame
 from juego_lleva.core.config import Config
+from juego_lleva.models.rect import Rect
 
 from juego_lleva.models.obstaculo import Obstaculo
 
@@ -50,7 +50,7 @@ class Entorno:
             x = random.randint(50, self.config.ANCHO_PANTALLA - tamano - 50)
             y = random.randint(50, self.config.ALTO_PANTALLA - tamano - 50)
 
-            nuevo_rect = pygame.Rect(x, y, tamano, tamano)
+            nuevo_rect = Rect(x, y, tamano, tamano)
 
             solapado = False
             for j in jugadores:

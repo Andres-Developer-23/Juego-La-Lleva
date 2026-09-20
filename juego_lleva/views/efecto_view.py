@@ -1,29 +1,21 @@
 """Vista que dibuja los efectos visuales de corta duración (toques, colisiones)."""
 
-import math
-import random
-
 import pygame
 
 
 class EfectoView:
-    """Clase que actualiza y renderiza los efectos (anillo + partículas)."""
+    """Clase que renderiza los efectos (anillo + partículas)."""
 
-    DURACION = 0.6
     COLOR_ANILLO = (255, 215, 0)
     _MAX_CACHE = 512
 
     def __init__(self):
-        """Inicializa la vista de efectos sin estados persistentes."""
-        self.tiempo_animacion = 0
+        """Inicializa la vista de efectos con cachés de superficies."""
         self._anillos = {}
         self._particulas = {}
 
     def _superficie_anillo(self, color, radio, alfa):
         """Devuelve (cacheando) la superficie circular de un anillo.
-
-        La caché se vacía al superar ``_MAX_CACHE`` entradas para acotar la
-        memoria durante partidas largas.
 
         Args:
             color (tuple): Color RGB del anillo.
@@ -45,9 +37,6 @@ class EfectoView:
     def _superficie_particula(self, color, radio):
         """Devuelve (cacheando) la superficie circular de una partícula.
 
-        Se blit-ea con ``BLEND_ADD`` (que ignora el alfa), por lo que la caché
-        solo depende del color y el radio.
-
         Args:
             color (tuple): Color RGB de la partícula.
             radio (int): Radio de la partícula.
@@ -64,42 +53,6 @@ class EfectoView:
             self._particulas[clave] = superficie
         return self._particulas[clave]
 
-    def _color_efecto(self, efecto):
-        """Devuelve el color del anillo según el efecto.
-
-        Args:
-            efecto (dict): Efecto activo.
-
-        Returns:
-            tuple: Color base del efecto.
-        """
-        return efecto.get("color", self.COLOR_ANILLO)
-
-    def actualizar(self, efectos, delta_tiempo):
-        """Actualiza el tiempo de vida de los efectos y elimina los vencidos.
-
-        Args:
-            efectos (list): Lista de efectos activos.
-            delta_tiempo (float): Tiempo transcurrido desde la última actualización.
-
-        Returns:
-            list: Lista de efectos que siguen vivos.
-        """
-        self.tiempo_animacion += delta_tiempo
-        vivos = []
-        for efecto in efectos:
-            efecto['tiempo'] += delta_tiempo
-            if efecto['tiempo'] >= self.DURACION:
-                continue
-
-            for particula in efecto['particulas']:
-                particula['x'] += particula['vx'] * delta_tiempo
-                particula['y'] += particula['vy'] * delta_tiempo
-                particula['vida'] -= delta_tiempo
-            efecto['particulas'] = [p for p in efecto['particulas'] if p['vida'] > 0]
-            vivos.append(efecto)
-        return vivos
-
     def renderizar(self, pantalla, efectos):
         """Dibuja los efectos activos sobre la pantalla.
 
@@ -109,9 +62,9 @@ class EfectoView:
         """
         for efecto in efectos:
             t = efecto['tiempo']
-            progreso = t / self.DURACION
+            progreso = t / 0.6
             alfa = int(255 * (1 - progreso))
-            color = self._color_efecto(efecto)
+            color = efecto.get('color', self.COLOR_ANILLO)
 
             x = efecto['x']
             y = efecto['y']
@@ -133,54 +86,3 @@ class EfectoView:
                 pantalla.blit(superficie, (int(particula['x']) - radio_p,
                                            int(particula['y']) - radio_p),
                               special_flags=pygame.BLEND_ADD)
-
-    def crear_toque(self, x, y, color=None, cantidad=14):
-        """Crea un efecto de toque en la posición indicada.
-
-        Args:
-            x (float): Coordenada horizontal del toque.
-            y (float): Coordenada vertical del toque.
-            color (tuple, optional): Color del efecto. Por defecto dorado.
-            cantidad (int): Número de partículas a generar.
-
-        Returns:
-            dict: Efecto listo para agregarse a la lista de activos.
-        """
-        particulas = []
-        for _ in range(cantidad):
-            angulo = random.uniform(0, math.pi * 2)
-            velocidad = random.uniform(40, 140)
-            particulas.append({
-                'x': x,
-                'y': y,
-                'vx': math.cos(angulo) * velocidad,
-                'vy': math.sin(angulo) * velocidad,
-                'vida': random.uniform(0.5, 0.7)
-            })
-        return {
-            'x': x,
-            'y': y,
-            'tiempo': 0.0,
-            'color': color or self.COLOR_ANILLO,
-            'particulas': particulas
-        }
-
-    def crear_anillo(self, x, y, color=(255, 215, 0)):
-        """Crea un efecto de solo anillo (sin partículas).
-
-        Args:
-            x (float): Coordenada horizontal.
-            y (float): Coordenada vertical.
-            color (tuple): Color del anillo.
-
-        Returns:
-            dict: Efecto listo para agregarse a la lista de activos.
-        """
-        return {
-            'x': x,
-            'y': y,
-            'tiempo': 0.0,
-            'color': color,
-            'anillo_solo': True,
-            'particulas': []
-        }

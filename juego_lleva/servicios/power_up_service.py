@@ -2,9 +2,9 @@
 
 import random
 
-import pygame
 from juego_lleva.core.config import Config
 from juego_lleva.models.power_up import PowerUp
+from juego_lleva.models.rect import Rect
 
 
 class PowerUpService:
@@ -36,7 +36,7 @@ class PowerUpService:
         for _ in range(200):
             x = random.randint(margen, self.config.ANCHO_PANTALLA - margen)
             y = random.randint(70, self.config.ALTO_PANTALLA - margen)
-            rect = pygame.Rect(x - tamaño // 2, y - tamaño // 2, tamaño, tamaño)
+            rect = Rect(x - tamaño // 2, y - tamaño // 2, tamaño, tamaño)
             if any(j.obtener_rectangulo().inflate(200, 200).colliderect(rect) for j in jugadores):
                 continue
             return PowerUp(x, y, tipo, self.config)

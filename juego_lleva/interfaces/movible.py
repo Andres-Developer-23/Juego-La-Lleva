@@ -29,6 +29,6 @@ class Movible(ABC):
         """Obtiene el rectángulo de colisión del objeto.
 
         Returns:
-            pygame.Rect: Rectángulo que define los límites del objeto para colisiones.
+            models.rect.Rect: Rectángulo que define los límites del objeto.
         """
         pass

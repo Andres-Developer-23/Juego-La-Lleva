@@ -1,7 +1,7 @@
 """Modelo que representa un obstáculo en el entorno del juego."""
 
-import pygame
 from juego_lleva.core.config import Config
+from juego_lleva.models.rect import Rect
 
 
 class Obstaculo:
@@ -34,9 +34,9 @@ class Obstaculo:
         """Obtiene el rectángulo de colisión del obstáculo.
 
         Returns:
-            pygame.Rect: Rectángulo que define los límites del obstáculo.
+            Rect: Rectángulo que define los límites del obstáculo.
         """
-        return pygame.Rect(self.x, self.y, self.ancho, self.alto)
+        return Rect(self.x, self.y, self.ancho, self.alto)
 
     def es_zona_lenta(self):
         """Verifica si el obstáculo es una zona que ralentiza.

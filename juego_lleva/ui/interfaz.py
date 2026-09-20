@@ -467,26 +467,6 @@ class Interfaz:
         hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 140, 520, 280, 50)
         self.dibujar_boton(pantalla, "Jugar", self.config.ANCHO_PANTALLA // 2 - 140, 520, 280, 50, hover)
 
-    def obtener_accion_menu(self, mouse_pos, click):
-        """Obtiene la acción del menú según la posición del mouse y el click.
-
-        Args:
-            mouse_pos (tuple): Posición del mouse.
-            click (bool): True si se hizo click.
-
-        Returns:
-            str: Acción seleccionada ("un_jugador", "jugar", "ayuda", "ranking", "salir") o None.
-        """
-        if not click:
-            return None
-        ancho = self._u(280)
-        alto = self._u(48)
-        x = self.config.ANCHO_PANTALLA // 2 - ancho // 2
-        for _texto, accion, y in self.BOTONES_MENU:
-            if self._dentro_boton(mouse_pos, x, self._u(y), ancho, alto):
-                return accion
-        return None
-
     def dibujar_opciones(self, pantalla, configuraciones, opcion_activa=None, mouse_pos=None):
         """Dibuja la pantalla de opciones configurables del juego.
 
@@ -560,30 +540,6 @@ class Interfaz:
             return "SI" if valor else "NO"
         return str(valor)
 
-    def obtener_accion_opciones(self, mouse_pos, click):
-        """Obtiene la acción de la pantalla de opciones según el mouse.
-
-        Args:
-            mouse_pos (tuple): Posición del mouse.
-            click (bool): True si se hizo click.
-
-        Returns:
-            tuple: ("cambiar", clave, direccion), ("volver",) o None.
-        """
-        if not click:
-            return None
-        cx = self.config.ANCHO_PANTALLA // 2
-        if self._dentro_boton(mouse_pos, cx - 100, 610, 200, 50):
-            return ("volver",)
-        filas = ["duracion_ronda", "dificultad_ia", "volumen_musica", "volumen_sfx", "pantalla_completa"]
-        for i, clave in enumerate(filas):
-            y = 155 + i * 80
-            if self._dentro_boton(mouse_pos, cx - 90, y + 15, 40, 40):
-                return ("cambiar", clave, -1)
-            if self._dentro_boton(mouse_pos, cx + 50, y + 15, 40, 40):
-                return ("cambiar", clave, 1)
-        return None
-
     def dibujar_ayuda(self, pantalla, mouse_pos=None):
         """Dibuja la pantalla de ayuda con instrucciones del juego.
 
@@ -646,23 +602,6 @@ class Interfaz:
         x = self.config.ANCHO_PANTALLA // 2 - ancho // 2
         y = min(680, self.config.ALTO_PANTALLA - alto - 10)
         return x, y, ancho, alto
-
-    def obtener_accion_ayuda(self, mouse_pos, click):
-        """Obtiene la acción de la pantalla de ayuda según el mouse.
-
-        Args:
-            mouse_pos (tuple): Posición del mouse.
-            click (bool): True si se hizo click.
-
-        Returns:
-            str: "volver" si se pulsó el botón, o None.
-        """
-        if not click:
-            return None
-        x, y, ancho, alto = self._rect_ayuda_volver()
-        if self._dentro_boton(mouse_pos, x, y, ancho, alto):
-            return "volver"
-        return None
 
     def dibujar_countdown(self, pantalla, numero):
         """Dibuja el countdown antes de iniciar la partida.
@@ -793,29 +732,6 @@ class Interfaz:
             "ENTER/R: Revancha   |   ESC: Menu", True, self.config.COLOR_PLATA)
         pantalla.blit(texto_atajos, (self.config.ANCHO_PANTALLA // 2 - texto_atajos.get_width() // 2, self._u(600)))
 
-    def obtener_accion_fin_ronda(self, mouse_pos, click):
-        """Obtiene la acción de fin de ronda según la posición del mouse y el click.
-
-        Args:
-            mouse_pos (tuple): Posición del mouse.
-            click (bool): True si se hizo click.
-
-        Returns:
-            str: Acción seleccionada ("revancha", "menu") o None.
-        """
-        if not click:
-            return None
-        btn_ancho = self._u(190)
-        btn_alto = self._u(50)
-        y_btn = self._u(510)
-        x_revancha = self.config.ANCHO_PANTALLA // 2 - btn_ancho - self._u(20)
-        x_menu = self.config.ANCHO_PANTALLA // 2 + self._u(20)
-        if self._dentro_boton(mouse_pos, x_revancha, y_btn, btn_ancho, btn_alto):
-            return "revancha"
-        if self._dentro_boton(mouse_pos, x_menu, y_btn, btn_ancho, btn_alto):
-            return "menu"
-        return None
-
     def dibujar_ranking(self, pantalla, entradas, mouse_pos=None):
         """Dibuja la pantalla de ranking con las mejores partidas.
 
@@ -882,18 +798,4 @@ class Interfaz:
         hover_volver = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 100, 580, 200, 50)
         self.dibujar_boton(pantalla, "Volver", self.config.ANCHO_PANTALLA // 2 - 100, 580, 200, 50, hover_volver)
 
-    def obtener_accion_ranking(self, mouse_pos, click):
-        """Obtiene la acción de la pantalla de ranking.
 
-        Args:
-            mouse_pos (tuple): Posición del mouse.
-            click (bool): True si se hizo click.
-
-        Returns:
-            str: Acción seleccionada ("volver") o None.
-        """
-        if not click:
-            return None
-        if self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 100, 580, 200, 50):
-            return "volver"
-        return None
