@@ -313,5 +313,113 @@
       "J1": 7.4,
       "J2": 0
     }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-20 14:59",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-20 14:59",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:02",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:02",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:06",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:08",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:11",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:12",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:18",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:38",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Beto",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:38",
+    "jugadores": {
+      "Ana": 0,
+      "Beto": 60
+    }
+  },
+  {
+    "ganador": "Ana",
+    "tiempo": 60,
+    "fecha": "2026-09-20 15:45",
+    "jugadores": {
+      "Ana": 60,
+      "Beto": 0
+    }
   }
 ]
