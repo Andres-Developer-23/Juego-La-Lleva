@@ -4,9 +4,9 @@ import math
 import random
 
 import pygame
-from core.config import Config
+from juego_lleva.core.config import Config
 
-from models.obstaculo import Obstaculo
+from juego_lleva.models.obstaculo import Obstaculo
 
 
 class Entorno:

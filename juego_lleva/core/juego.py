@@ -4,25 +4,26 @@ import random
 import sys
 
 import pygame
-from controles.tactil import ControladorTactil
-from models.jugador_humano import JugadorHumano
-from models.jugador_ia import JugadorIA
-from servicios.audio import ServicioAudio
-from servicios.colision import ColisionService
-from servicios.configuracion import ConfiguracionService
-from servicios.power_up_service import PowerUpService
-from servicios.puntaje import PuntajeService
-from servicios.ranking import RankingService
-from servicios.ronda import RondaService
-from ui.interfaz import Interfaz
+from juego_lleva.controles.tactil import ControladorTactil
+from juego_lleva.models.jugador_humano import JugadorHumano
+from juego_lleva.models.jugador_ia import JugadorIA
+from juego_lleva.servicios.audio import ServicioAudio
+from juego_lleva.servicios.colision import ColisionService
+from juego_lleva.servicios.configuracion import ConfiguracionService
+from juego_lleva.servicios.power_up_service import PowerUpService
+from juego_lleva.servicios.puntaje import PuntajeService
+from juego_lleva.servicios.ranking import RankingService
+from juego_lleva.servicios.ronda import RondaService
+from juego_lleva.ui.interfaz import Interfaz
 
-from core.config import Config
-from core.gestor_modos import GestorModos
+from juego_lleva.core.config import Config
+from juego_lleva.core.estado import EstadoJuego
+from juego_lleva.core.gestor_modos import GestorModos
 
-from views.jugador_view import JugadorView
-from views.entorno_view import EntornoView
-from views.efecto_view import EfectoView
-from views.power_up_view import PowerUpView
+from juego_lleva.views.jugador_view import JugadorView
+from juego_lleva.views.entorno_view import EntornoView
+from juego_lleva.views.efecto_view import EfectoView
+from juego_lleva.views.power_up_view import PowerUpView
 
 
 class TeclasFusionadas:
@@ -79,7 +80,7 @@ class Juego:
         self.power_up_timer = 0
         self.efectos_activos = {}
         self.tiempo_ronda = 0
-        self.estado = "menu"
+        self.estado = EstadoJuego.MENU
         self.opcion_activa = 0
         self.opcion_menu = 0
         self.toasts = []
@@ -154,8 +155,8 @@ class Juego:
                 if evento.key == pygame.K_F11:
                     self._alternar_pantalla_completa()
                     self.configuracion.establecer(
-                        "pantalla_completa", bool(pygame.display.get_fullscreen()))
-                elif evento.key == pygame.K_m and self.estado != "nombres":
+                        "pantalla_completa", bool(pygame.display.is_fullscreen()))
+                elif evento.key == pygame.K_m and self.estado != EstadoJuego.NOMBRES:
                     self.musica_activa = not self.musica_activa
             self.eventos_pendientes.append(evento)
 
@@ -164,23 +165,23 @@ class Juego:
         if self.toasts:
             self.toasts = self.interfaz.actualizar_toasts(self.toasts, delta_tiempo)
 
-        if self.estado == "menu":
+        if self.estado == EstadoJuego.MENU:
             self._menu_principal()
-        elif self.estado == "nombres":
+        elif self.estado == EstadoJuego.NOMBRES:
             self._pantalla_nombres()
-        elif self.estado == "jugando":
+        elif self.estado == EstadoJuego.JUGANDO:
             self._bucle_juego(delta_tiempo)
-        elif self.estado == "pausa":
+        elif self.estado == EstadoJuego.PAUSA:
             self._pantalla_pausa()
-        elif self.estado == "fin_ronda":
+        elif self.estado == EstadoJuego.FIN_RONDA:
             self._pantalla_fin_ronda()
-        elif self.estado == "ayuda":
+        elif self.estado == EstadoJuego.AYUDA:
             self._pantalla_ayuda()
-        elif self.estado == "countdown":
+        elif self.estado == EstadoJuego.COUNTDOWN:
             self._pantalla_countdown(delta_tiempo)
-        elif self.estado == "ranking":
+        elif self.estado == EstadoJuego.RANKING:
             self._pantalla_ranking()
-        elif self.estado == "opciones":
+        elif self.estado == EstadoJuego.OPCIONES:
             self._pantalla_opciones()
 
         if self.fade_alpha > 0:
@@ -222,6 +223,7 @@ class Juego:
 
         self.interfaz.dibujar_menu_principal(self.pantalla, self.mouse_pos, self.opcion_menu)
         pygame.display.flip()
+        self._ritmo()
 
     def _ritmo(self):
         """Limita los FPS en escritorio; en la web el flip del navegador manda."""
@@ -238,18 +240,18 @@ class Juego:
             self.modo = "un_jugador"
             self.nombres = ["J1"]
             self.nombre_activo = 0
-            self.estado = "nombres"
+            self.estado = EstadoJuego.NOMBRES
         elif accion == "jugar":
             self.modo = "dos_jugadores"
             self.nombres = ["J1", "J2"]
             self.nombre_activo = 0
-            self.estado = "nombres"
+            self.estado = EstadoJuego.NOMBRES
         elif accion == "ayuda":
-            self.estado = "ayuda"
+            self.estado = EstadoJuego.AYUDA
         elif accion == "ranking":
-            self.estado = "ranking"
+            self.estado = EstadoJuego.RANKING
         elif accion == "opciones":
-            self.estado = "opciones"
+            self.estado = EstadoJuego.OPCIONES
             self.opcion_activa = 0
         elif accion == "salir":
             pygame.quit()
@@ -287,6 +289,7 @@ class Juego:
                                                 self.nombre_activo, self.mouse_pos,
                                                 cantidad_jugadores)
         pygame.display.flip()
+        self._ritmo()
 
     def _pantalla_ayuda(self):
         """Maneja la pantalla de ayuda."""
@@ -297,11 +300,10 @@ class Juego:
 
         self.interfaz.dibujar_ayuda(self.pantalla, self.mouse_pos)
 
-        if self.click_realizado and self.mouse_pos:
-            x, y = self.mouse_pos
-            if (self.config.ANCHO_PANTALLA // 2 - 100 <= x <= self.config.ANCHO_PANTALLA // 2 + 100 and
-                670 <= y <= 720):
-                self._volver_al_menu()
+        accion = self.interfaz.obtener_accion_ayuda(self.mouse_pos, self.click_realizado)
+        if accion == "volver":
+            self._volver_al_menu()
+            return
 
         pygame.display.flip()
         self._ritmo()
@@ -325,7 +327,7 @@ class Juego:
             if self.countdown_valor <= 0:
                 self.audio.inicio()
                 self._mostrar_toast("¡A jugar!", self.config.COLOR_LIBRE)
-                self.estado = "jugando"
+                self.estado = EstadoJuego.JUGANDO
                 return
             self.audio.beep()
 
@@ -340,12 +342,12 @@ class Juego:
             delta_tiempo (float): Tiempo transcurrido desde la última actualización.
         """
         if self.tactil.consumir_pausa():
-            self.estado = "pausa"
+            self.estado = EstadoJuego.PAUSA
             return
 
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN and evento.key in (pygame.K_ESCAPE, pygame.K_p):
-                self.estado = "pausa"
+                self.estado = EstadoJuego.PAUSA
                 return
 
         teclas = self._teclas_fusionadas()
@@ -373,7 +375,7 @@ class Juego:
             if any(j.velocidad_abs > 80 for j in self.jugadores):
                 self.audio.paso()
 
-        colisiones = self.servicio_colision.detectar_colisiones(self.jugadores)
+        colisiones = self.servicio_colision.detectar_colisiones(self.jugadores, delta_tiempo)
         for j1, j2 in colisiones:
             self._procesar_colision(j1, j2)
             self.servicio_colision.separar_jugadores(j1, j2, self.config.TAMAÑO_JUGADOR)
@@ -539,12 +541,12 @@ class Juego:
     def _pantalla_pausa(self):
         """Maneja la pantalla de pausa durante la partida."""
         if self.tactil.consumir_pausa():
-            self.estado = "jugando"
+            self.estado = EstadoJuego.JUGANDO
             return
         for evento in self.eventos_pendientes:
             if evento.type == pygame.KEYDOWN:
                 if evento.key in (pygame.K_p, pygame.K_ESCAPE):
-                    self.estado = "jugando"
+                    self.estado = EstadoJuego.JUGANDO
                     return
                 if evento.key == pygame.K_q:
                     self._volver_al_menu()
@@ -633,7 +635,7 @@ class Juego:
                         x + random.uniform(-80, 80), y + random.uniform(-80, 80),
                         self.config.COLOR_DORADO, 6))
         self.audio.fin_ronda()
-        self.estado = "fin_ronda"
+        self.estado = EstadoJuego.FIN_RONDA
 
     def _pantalla_fin_ronda(self):
         """Maneja la pantalla de fin de ronda mostrando resultados."""
@@ -665,6 +667,7 @@ class Juego:
                                         self.puntaje_service.tiempos_lleva, self.mouse_pos,
                                         self.jugadores)
         pygame.display.flip()
+        self._ritmo()
 
     def _registrar_en_ranking(self, ganador_id):
         """Registra la partida actual en el ranking.
@@ -696,6 +699,7 @@ class Juego:
         entradas = self.ranking_service.obtener_top(10)
         self.interfaz.dibujar_ranking(self.pantalla, entradas, self.mouse_pos)
         pygame.display.flip()
+        self._ritmo()
 
     def _pantalla_opciones(self):
         """Maneja la pantalla de opciones configurables."""
@@ -725,6 +729,7 @@ class Juego:
         self.interfaz.dibujar_opciones(self.pantalla, self.configuracion,
                                         self.opcion_activa, self.mouse_pos)
         pygame.display.flip()
+        self._ritmo()
 
     def _cambiar_opcion(self, indice, aumentar):
         """Cambia el valor de la opción seleccionada con el teclado.
@@ -749,8 +754,6 @@ class Juego:
             self.duracion_ronda = self.configuracion.obtener("duracion_ronda")
         elif clave == "volumen_musica":
             self.audio.set_volumen_musica(self.configuracion.obtener("volumen_musica"))
-            if self.musica_activa:
-                self.audio.set_volumen_musica(self.configuracion.obtener("volumen_musica"))
         elif clave == "volumen_sfx":
             self.audio.set_volumen_sfx(self.configuracion.obtener("volumen_sfx"))
         elif clave == "pantalla_completa":
@@ -775,7 +778,7 @@ class Juego:
             jugador.escudo = False
             jugador.factor_velocidad = 1.0
             jugador.congelado = 0.0
-        self.estado = "countdown"
+        self.estado = EstadoJuego.COUNTDOWN
         self.countdown_valor = 3
         self.countdown_timer = 0
         self.fade_alpha = 255
@@ -796,14 +799,14 @@ class Juego:
         parametros = self.config.DIFICULTADES.get(nivel, self.config.DIFICULTADES["normal"])
         for jugador in self.jugadores:
             if isinstance(jugador, JugadorIA):
-                jugador.config.VELOCIDAD_IA = parametros["VELOCIDAD_IA"]
-                jugador.config.VARIACION_IA = parametros["VARIACION_IA"]
-                jugador.config.FACTOR_IA_HUYENDO = parametros["FACTOR_IA_HUYENDO"]
+                jugador.velocidad_ia = parametros["VELOCIDAD_IA"]
+                jugador.variacion_ia = parametros["VARIACION_IA"]
+                jugador.factor_ia_huyendo = parametros["FACTOR_IA_HUYENDO"]
                 jugador.tiempo_reaccion = parametros.get("TIEMPO_REACCION", 0.2)
 
     def _volver_al_menu(self):
         """Vuelve al menú principal limpiando el estado de la partida."""
-        self.estado = "menu"
+        self.estado = EstadoJuego.MENU
         self.jugadores.clear()
         self.jugadores_views.clear()
         self.tiempo_ronda = 0
@@ -830,7 +833,6 @@ class Juego:
         """
         jugador = JugadorHumano(x, y, id_jugador, teclas, nombre)
         jugador_view = JugadorView()
-        jugador_view.cargar_sprites(jugador)
         self.jugadores.append(jugador)
         self.jugadores_views.append(jugador_view)
         return jugador
@@ -850,7 +852,6 @@ class Juego:
         jugador = JugadorIA(x, y, id_jugador, nombre)
         jugador.jugadores = self.jugadores
         jugador_view = JugadorView()
-        jugador_view.cargar_sprites(jugador)
         self.jugadores.append(jugador)
         self.jugadores_views.append(jugador_view)
         return jugador

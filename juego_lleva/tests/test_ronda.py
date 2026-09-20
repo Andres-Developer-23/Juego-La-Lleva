@@ -2,8 +2,8 @@
 
 import unittest
 
-from servicios.puntaje import PuntajeService
-from servicios.ronda import RondaService
+from juego_lleva.servicios.puntaje import PuntajeService
+from juego_lleva.servicios.ronda import RondaService
 
 
 class JugadorFake:

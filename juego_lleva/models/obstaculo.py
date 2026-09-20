@@ -1,7 +1,7 @@
 """Modelo que representa un obstáculo en el entorno del juego."""
 
 import pygame
-from core.config import Config
+from juego_lleva.core.config import Config
 
 
 class Obstaculo:

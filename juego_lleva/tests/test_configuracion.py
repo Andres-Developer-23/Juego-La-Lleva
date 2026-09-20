@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 
-from servicios.configuracion import ConfiguracionService
+from juego_lleva.servicios.configuracion import ConfiguracionService
 
 
 class TestConfiguracionService(unittest.TestCase):

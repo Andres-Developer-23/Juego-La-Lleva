@@ -1,11 +1,10 @@
 """Vista que dibuja los power-ups sobre el campo de juego."""
 
 import math
-import random
 
 import pygame
 
-from core.config import Config
+from juego_lleva.core.config import Config
 
 
 class PowerUpView:
@@ -40,6 +39,8 @@ class PowerUpView:
             pygame.Surface: Halo pre-renderizado reutilizable.
         """
         clave = (color, radio, alpha)
+        if len(self._halos) >= 256:
+            self._halos.clear()
         if clave not in self._halos:
             superficie = pygame.Surface((70, 70), pygame.SRCALPHA)
             pygame.draw.circle(superficie, (*color, int(alpha * 0.35)),

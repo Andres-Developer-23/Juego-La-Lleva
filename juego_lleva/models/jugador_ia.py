@@ -3,7 +3,7 @@
 import math
 import random
 
-from models.jugador import Jugador
+from juego_lleva.models.jugador import Jugador
 
 
 class JugadorIA(Jugador):
@@ -22,6 +22,9 @@ class JugadorIA(Jugador):
         self.es_ia = True
         self.jugadores = []
         self.tiempo_reaccion = 0.2
+        self.velocidad_ia = self.config.VELOCIDAD_IA
+        self.variacion_ia = self.config.VARIACION_IA
+        self.factor_ia_huyendo = self.config.FACTOR_IA_HUYENDO
         self._dir_x = 0.0
         self._dir_y = 0.0
         self._recalcular = 0.0
@@ -100,7 +103,7 @@ class JugadorIA(Jugador):
         dir_x = (dx / dist) * direccion
         dir_y = (dy / dist) * direccion
 
-        variacion = random.uniform(-1, 1) * self.config.VARIACION_IA
+        variacion = random.uniform(-1, 1) * self.variacion_ia
         dir_x += variacion
         dir_y += variacion
 
@@ -140,10 +143,10 @@ class JugadorIA(Jugador):
             self._recalcular = self.tiempo_reaccion
         self._recalcular -= dt
 
-        velocidad_max = self.config.VELOCIDAD_IA * self.factor_velocidad
+        velocidad_max = self.velocidad_ia * self.factor_velocidad
         if en_zona_lenta:
             velocidad_max *= self.config.FACTOR_RALENTIZACION
         if self.es_lleva:
-            velocidad_max *= self.config.FACTOR_IA_HUYENDO
+            velocidad_max *= self.factor_ia_huyendo
 
         self.mover_con_fisica(self._dir_x, self._dir_y, velocidad_max, dt)

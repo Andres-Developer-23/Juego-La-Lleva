@@ -61,8 +61,9 @@ implementado:
 - **Efectos al tocar**: anillo expansivo y partículas en el punto del contacto,
   audio de toque, pisadas al correr, y transferencia correcta del rol de "la
   lleva".
-- **Sonido procedimental**: la música y los efectos se sintetizan con numpy en
-  vez de usar archivos externos (no hay dependencia de sprites/audio descargado).
+- **Sonido procedimental**: la música y los efectos se sintetizan en tiempo de
+  ejecución con módulos estándar (`array`, `math`), sin `numpy` ni archivos de
+  audio externos.
 
 ### Arquitectura y calidad de código
 
@@ -71,7 +72,7 @@ implementado:
   (entrada) e `interfaces` (abstracciones). Las reglas de la ronda, el ranking,
   las colisiones, los power-ups y la síntesis de audio son **servicios
   independientes**, desacoplados de la interfaz.
-- **Pruebas unitarias**: suite con **113 pruebas** usando `unittest`
+- **Pruebas unitarias**: suite con **111 pruebas** usando `unittest`
   (puntajes, reglas de la ronda, ranking con persistencia, colisiones y
   deslizamiento, toque por alcance, física del jugador y de la IA, power-ups,
   configuración persistente, síntesis de audio, control táctil y multijugador
@@ -131,7 +132,7 @@ tras escribir los archivos, por eso el script espera a que aparezcan y completa
 los recursos que su CDN ya no sirve):
 
 ```bash
-.venv/bin/pip install pygbag playwright            # playwright solo para el test web
+.venv/bin/pip install -r requirements-dev.txt    # pygbag + playwright (test web)
 .venv/bin/python web/compilar_web.py
 ```
 
@@ -176,20 +177,21 @@ El servidor muestra la IP local para abrir el juego desde el celular
 
 2. Crear entorno virtual
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   venv\Scripts\activate     # Windows
+   python -m venv .venv
+   source .venv/bin/activate  # Linux/Mac
+   .venv\Scripts\activate     # Windows
    ```
 
 3. Instalar dependencias
    ```bash
    pip install -r requirements.txt
+   # Solo para la versión web (pygbag + playwright):
+   pip install -r requirements-dev.txt
    ```
 
-4. Ejecutar el juego
+4. Ejecutar el juego (desde la raíz del proyecto)
    ```bash
-   cd juego_lleva
-   python main.py
+   python -m juego_lleva
    ```
 
 ## Controles
@@ -295,8 +297,8 @@ Juego-La-Lleva/
 │   ├── servicios/       # Lógica de negocio
 │   ├── controles/       # Manejo de entrada (teclado y táctil)
 │   ├── interfaces/      # Abstracciones
-│   ├── tests/           # 113 pruebas unitarias
-│   └── assets/          # Sprites y fondos (regenerables con generar_assets.py)
+│   ├── tests/           # 111 pruebas unitarias
+│   └── assets/          # Fondos (regenerables con generar_assets.py)
 ├── cliente.py           # Launcher del cliente de red (pygame + red)
 ├── servidor.py          # Launcher del servidor de red
 ├── web/                 # Soporte para la versión navegador
@@ -305,18 +307,19 @@ Juego-La-Lleva/
 │   ├── compilar_web.py  # Compila con pygbag y completa recursos
 │   └── probar_web.py    # Verificación con navegador headless
 ├── servidor_web.py      # Servidor de la versión compilada (sin COEP)
-└── requirements.txt
+├── requirements.txt     # Dependencias de ejecución (pygame-ce)
+└── requirements-dev.txt # Dependencias de desarrollo/web (pygbag, playwright)
 ```
 
 ## Pruebas
 
-Ejecutar la suite de pruebas desde el directorio `juego_lleva/`:
+Ejecutar la suite de pruebas desde la raíz del proyecto:
 
 ```bash
-python -m unittest discover -s tests -p "test_*.py" -v
+python -m unittest discover -s juego_lleva/tests -t . -p "test_*.py" -v
 ```
 
-Las **113 pruebas** cubren: puntajes, reglas de la ronda (regla clásica),
+Las **111 pruebas** cubren: puntajes, reglas de la ronda (regla clásica),
 ranking con persistencia, colisiones y deslizamiento contra cajas, rebote a
 alta velocidad, toque por alcance, física del jugador (inercia, diagonal
 normalizada, tropiezo) y de la IA (persecución/huida, reacción), power-ups,
@@ -338,3 +341,7 @@ SDL_VIDEODRIVER=dummy python juego_lleva/assets/generar_assets.py
 
 - Python 3.12+
 - pygame-ce 2.5+
+
+## Licencia
+
+Este proyecto se distribuye bajo la licencia MIT. Ver [LICENSE](LICENSE).

@@ -15,16 +15,16 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 import pygame
 
-from core.config import Config
-from core.juego import Juego
-from models.jugador_humano import JugadorHumano
-from models.jugador_ia import JugadorIA
-from models.power_up import PowerUp
-from ui.interfaz import Interfaz
-from views.efecto_view import EfectoView
-from views.entorno_view import EntornoView
-from views.jugador_view import JugadorView
-from views.power_up_view import PowerUpView
+from juego_lleva.core.config import Config
+from juego_lleva.core.juego import Juego
+from juego_lleva.models.jugador_humano import JugadorHumano
+from juego_lleva.models.jugador_ia import JugadorIA
+from juego_lleva.models.power_up import PowerUp
+from juego_lleva.ui.interfaz import Interfaz
+from juego_lleva.views.efecto_view import EfectoView
+from juego_lleva.views.entorno_view import EntornoView
+from juego_lleva.views.jugador_view import JugadorView
+from juego_lleva.views.power_up_view import PowerUpView
 
 
 class TestJugadorView(unittest.TestCase):

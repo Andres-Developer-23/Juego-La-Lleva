@@ -2,7 +2,7 @@
 
 import unittest
 
-from servicios.puntaje import PuntajeService
+from juego_lleva.servicios.puntaje import PuntajeService
 
 
 class TestPuntajeService(unittest.TestCase):

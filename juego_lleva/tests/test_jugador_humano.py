@@ -6,8 +6,8 @@ import unittest
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
-from core.config import Config
-from models.jugador_humano import JugadorHumano
+from juego_lleva.core.config import Config
+from juego_lleva.models.jugador_humano import JugadorHumano
 
 
 class TestJugadorHumanoRealTime(unittest.TestCase):

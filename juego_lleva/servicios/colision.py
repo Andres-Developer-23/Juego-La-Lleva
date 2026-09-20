@@ -2,7 +2,7 @@
 
 import math
 
-from core.config import Config
+from juego_lleva.core.config import Config
 
 
 class ColisionService:
@@ -11,22 +11,8 @@ class ColisionService:
     def __init__(self):
         """Inicializa el servicio de colisiones con configuración por defecto."""
         self.config = Config()
-        self.cooldown = 0
-        self.COOLDOWN_FRAMES = 10
-
-    def detectar_colision(self, j1, j2):
-        """Detecta si dos jugadores están colisionando.
-
-        Args:
-            j1: Primer jugador.
-            j2: Segundo jugador.
-
-        Returns:
-            bool: True si hay colisión, False en caso contrario.
-        """
-        rect1 = j1.obtener_rectangulo()
-        rect2 = j2.obtener_rectangulo()
-        return rect1.colliderect(rect2)
+        self.cooldown = 0.0
+        self.COOLDOWN_SEG = 0.15
 
     def detectar_toque(self, j1, j2):
         """Detecta si dos jugadores se tocan a distancia de alcance real.
@@ -47,17 +33,22 @@ class ColisionService:
         dist = math.hypot(dx, dy)
         return dist < self.config.ALCANCE_TOQUE
 
-    def detectar_colisiones(self, jugadores):
+    def detectar_colisiones(self, jugadores, delta_tiempo=0.0):
         """Detecta todas las colisiones entre una lista de jugadores.
+
+        El cooldown se mide en segundos (no en frames) para que el
+        comportamiento sea independiente de la tasa de refresco, que en la
+        versión web la marca el navegador.
 
         Args:
             jugadores (list): Lista de jugadores a verificar.
+            delta_tiempo (float): Tiempo transcurrido desde el último frame.
 
         Returns:
             list: Lista de tuplas con pares de jugadores en colisión.
         """
         if self.cooldown > 0:
-            self.cooldown -= 1
+            self.cooldown = max(0.0, self.cooldown - delta_tiempo)
             return []
 
         colisiones = []
@@ -67,7 +58,7 @@ class ColisionService:
                     colisiones.append((j1, j2))
 
         if colisiones:
-            self.cooldown = self.COOLDOWN_FRAMES
+            self.cooldown = self.COOLDOWN_SEG
 
         return colisiones[:1]
 
@@ -146,18 +137,6 @@ class ColisionService:
                 jugador.vx = -math.copysign(velocidad_entrada * choque, centro_x)
             elif not horizontal and centro_y != 0:
                 jugador.vy = -math.copysign(velocidad_entrada * choque, centro_y)
-
-    def rebote_obstaculo(self, jugador, obstaculo, delta_tiempo=None):
-        """Aplica un rebote al jugador cuando colisiona con un obstáculo.
-
-        Método de compatibilidad que delega en la resolución deslizante.
-
-        Args:
-            jugador: Jugador que rebota.
-            obstaculo: Obstáculo con el que colisiona.
-            delta_tiempo (float, optional): Tiempo transcurrido en segundos.
-        """
-        self.resolver_obstaculo(jugador, obstaculo)
 
     def jugador_en_zona_lenta(self, jugador, obstaculos):
         """Verifica si un jugador está en una zona que ralentiza.

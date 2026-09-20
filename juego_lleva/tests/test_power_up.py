@@ -2,10 +2,10 @@
 
 import unittest
 
-from core.config import Config
-from models.jugador_humano import JugadorHumano
-from models.power_up import PowerUp
-from servicios.power_up_service import PowerUpService
+from juego_lleva.core.config import Config
+from juego_lleva.models.jugador_humano import JugadorHumano
+from juego_lleva.models.power_up import PowerUp
+from juego_lleva.servicios.power_up_service import PowerUpService
 
 
 def _teclas_minimas():

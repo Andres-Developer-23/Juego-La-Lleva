@@ -10,7 +10,7 @@ import math
 import random
 
 import pygame
-from core.config import Config
+from juego_lleva.core.config import Config
 
 
 class JugadorView:
@@ -50,38 +50,8 @@ class JugadorView:
         self.fase_caminar = 0
         self.particulas_rastro = []
         self.trail_timer = 0
-        self.sprite_normal = None
-        self.sprite_lleva = None
         self.s = self.config.TAMAÑO_JUGADOR / 95.0
-
-    def cargar_sprites(self, jugador):
-        """Carga los sprites correspondientes al jugador (compatibilidad).
-
-        El renderizado principal es procedural, pero se conserva la carga por
-        si algún modo desea usar imágenes externas.
-
-        Args:
-            jugador: Objeto jugador con id para determinar sprites.
-        """
-        self.sprite_normal = self._cargar_sprite(
-            self.config.SPRITE_J1 if jugador.id == 0 else self.config.SPRITE_J2
-        )
-        self.sprite_lleva = self._cargar_sprite(self.config.SPRITE_LLEVA)
-
-    def _cargar_sprite(self, ruta):
-        """Carga un sprite desde una ruta de archivo.
-
-        Args:
-            ruta (str): Ruta al archivo de imagen.
-
-        Returns:
-            pygame.Surface: Sprite cargado o None si hay error.
-        """
-        try:
-            imagen = pygame.image.load(ruta).convert_alpha()
-            return pygame.transform.scale(imagen, (self.config.TAMAÑO_JUGADOR, self.config.TAMAÑO_JUGADOR))
-        except (pygame.error, OSError):
-            return None
+        self._fuente_nombre = pygame.font.SysFont(None, 24)
 
     def _color_oscuro(self, color):
         """Devuelve una versión oscurecida de un color.
@@ -496,7 +466,7 @@ class JugadorView:
             pantalla: Superficie de pygame donde dibujar.
             jugador: Jugador al que pertenece el nombre.
         """
-        fuente = pygame.font.SysFont(None, 24)
+        fuente = self._fuente_nombre
         texto = fuente.render(jugador.nombre, True, (255, 255, 255))
         contorno = fuente.render(jugador.nombre, True, (15, 15, 25))
         cx = jugador.x + self.config.TAMAÑO_JUGADOR // 2

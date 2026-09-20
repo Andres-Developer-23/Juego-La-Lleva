@@ -8,7 +8,7 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 import pygame
 
-from views.efecto_view import EfectoView
+from juego_lleva.views.efecto_view import EfectoView
 
 
 class TestEfectoView(unittest.TestCase):

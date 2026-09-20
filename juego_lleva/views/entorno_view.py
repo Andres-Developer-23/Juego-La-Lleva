@@ -2,7 +2,7 @@
 
 import pygame
 
-from views.obstaculo_view import ObstaculoView
+from juego_lleva.views.obstaculo_view import ObstaculoView
 
 
 class EntornoView:

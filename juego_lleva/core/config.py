@@ -65,12 +65,8 @@ class Config:
 
     # Assets
     ASSETS_DIR = os.path.join(_BASE_DIR, "assets")
-    SPRITE_DIR = os.path.join(ASSETS_DIR, "sprites")
     FONDOS_DIR = os.path.join(ASSETS_DIR, "fondos")
 
-    SPRITE_J1 = os.path.join(SPRITE_DIR, "jugador1.png")
-    SPRITE_J2 = os.path.join(SPRITE_DIR, "jugador2.png")
-    SPRITE_LLEVA = os.path.join(SPRITE_DIR, "lleva.png")
     FONDO = os.path.join(FONDOS_DIR, "campo.png")
     FONDO_MENU = os.path.join(FONDOS_DIR, "menu_bg.jpg")
     RANKING_PATH = os.path.join(ASSETS_DIR, "ranking.json")

@@ -9,9 +9,9 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 import pygame
 
-from core.config import Config
-from core.juego import Juego
-from models.power_up import PowerUp
+from juego_lleva.core.config import Config
+from juego_lleva.core.juego import Juego
+from juego_lleva.models.power_up import PowerUp
 
 
 class TestReglaClasicaIntegracion(unittest.TestCase):
@@ -112,7 +112,7 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         juego.configuracion.establecer("dificultad_ia", "dificil")
         juego._aplicar_dificultad_ia()
         ia = juego.jugadores[1]
-        self.assertEqual(ia.config.VELOCIDAD_IA, Config.DIFICULTADES["dificil"]["VELOCIDAD_IA"])
+        self.assertEqual(ia.velocidad_ia, Config.DIFICULTADES["dificil"]["VELOCIDAD_IA"])
 
     def test_normalizar_nombres_vacios(self):
         juego = self.juego

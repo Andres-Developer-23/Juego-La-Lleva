@@ -1,8 +1,8 @@
 """Modelo que representa a un jugador en el juego."""
 
 import pygame
-from core.config import Config
-from interfaces.movible import Movible
+from juego_lleva.core.config import Config
+from juego_lleva.interfaces.movible import Movible
 
 
 class Jugador(Movible):
@@ -23,7 +23,6 @@ class Jugador(Movible):
         self.nombre = nombre or f"J{id_jugador + 1}"
         self._es_lleva = False
         self.config = Config()
-        self.posicion_anterior = (x, y)
         self.factor_velocidad = 1.0
         self.escudo = False
         self.congelado = 0.0
@@ -153,7 +152,6 @@ class Jugador(Movible):
             self.direccion_cara = 1 if self.vx > 0 else -1
 
         self.velocidad_abs = (self.vx * self.vx + self.vy * self.vy) ** 0.5
-        self.posicion_anterior = (self.x, self.y)
 
     def mover_con_fisica(self, dir_x, dir_y, velocidad_max, delta_tiempo):
         """Combina el impulso (aceleración/inercia) con el desplazamiento.

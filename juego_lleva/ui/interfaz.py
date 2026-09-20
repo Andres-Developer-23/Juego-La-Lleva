@@ -3,13 +3,21 @@
 import pygame
 import math
 import random
-from core.config import Config
+from juego_lleva.core.config import Config
 
 
 class Interfaz:
     """Clase que gestiona toda la interfaz de usuario del juego."""
 
     acciones_menu = ["un_jugador", "jugar", "ayuda", "ranking", "opciones", "salir"]
+    BOTONES_MENU = [
+        ("Un Jugador", "un_jugador", 260),
+        ("Multijugador", "jugar", 315),
+        ("Como Jugar", "ayuda", 370),
+        ("Ranking", "ranking", 425),
+        ("Opciones", "opciones", 480),
+        ("Salir", "salir", 535),
+    ]
 
     def __init__(self):
         """Inicializa la interfaz con fuentes y partículas decorativas."""
@@ -23,6 +31,7 @@ class Interfaz:
         self.fuente_countdown = pygame.font.SysFont(None, 120)
         self.tiempo_animacion = 0
         self.particulas = []
+        self._particulas_cache = {}
         self._fondo_menu = None
         self.escala_ui = self.config.ALTO_PANTALLA / 1080.0
         self._generar_particulas_menu()
@@ -80,13 +89,31 @@ class Interfaz:
             pantalla: Superficie de pygame donde dibujar.
         """
         for p in self.particulas:
-            surface = pygame.Surface((p['tamaño'] * 2, p['tamaño'] * 2), pygame.SRCALPHA)
             color = (80 + int(40 * math.sin(p['fase'])),
                     80 + int(40 * math.sin(p['fase'] + 1)),
                     120 + int(30 * math.sin(p['fase'] + 2)))
-            pygame.draw.circle(surface, (*color, p['alpha']),
-                             (p['tamaño'], p['tamaño']), p['tamaño'])
-            pantalla.blit(surface, (int(p['x']) - p['tamaño'], int(p['y']) - p['tamaño']))
+            superficie = self._superficie_particula(p['tamaño'], color, p['alpha'])
+            pantalla.blit(superficie, (int(p['x']) - p['tamaño'], int(p['y']) - p['tamaño']))
+
+    def _superficie_particula(self, tamano, color, alpha):
+        """Devuelve (cacheando) la superficie de una partícula del menú.
+
+        Args:
+            tamano (int): Radio de la partícula.
+            color (tuple): Color RGB.
+            alpha (int): Opacidad (0-255).
+
+        Returns:
+            pygame.Surface: Partícula pre-renderizada reutilizable.
+        """
+        if len(self._particulas_cache) >= 512:
+            self._particulas_cache.clear()
+        clave = (tamano, color, alpha)
+        if clave not in self._particulas_cache:
+            surface = pygame.Surface((tamano * 2, tamano * 2), pygame.SRCALPHA)
+            pygame.draw.circle(surface, (*color, alpha), (tamano, tamano), tamano)
+            self._particulas_cache[clave] = surface
+        return self._particulas_cache[clave]
 
     def dibujar_boton(self, pantalla, texto, x, y, ancho, alto, hover=False):
         """Dibuja un botón con efecto hover.
@@ -370,19 +397,10 @@ class Interfaz:
         x_panel = self.config.ANCHO_PANTALLA // 2 - ancho_panel // 2
         self.dibujar_panel(pantalla, x_panel, self._u(240), ancho_panel, alto_panel, 160)
 
-        botones = [
-            ("Un Jugador", 260),
-            ("Multijugador", 315),
-            ("Como Jugar", 370),
-            ("Ranking", 425),
-            ("Opciones", 480),
-            ("Salir", 535)
-        ]
-
         ancho_boton = self._u(280)
         alto_boton = self._u(48)
         x_boton = self.config.ANCHO_PANTALLA // 2 - ancho_boton // 2
-        for i, (texto_boton, y) in enumerate(botones):
+        for i, (texto_boton, _accion, y) in enumerate(self.BOTONES_MENU):
             y_btn = self._u(y)
             hover = mouse_pos and self._dentro_boton(mouse_pos, x_boton, y_btn, ancho_boton, alto_boton)
             self.dibujar_boton(pantalla, texto_boton, x_boton, y_btn, ancho_boton, alto_boton, hover)
@@ -461,16 +479,11 @@ class Interfaz:
         """
         if not click:
             return None
-        botones = [
-            (self.config.ANCHO_PANTALLA // 2 - 140, 260, 280, 48, "un_jugador"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 315, 280, 48, "jugar"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 370, 280, 48, "ayuda"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 425, 280, 48, "ranking"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 480, 280, 48, "opciones"),
-            (self.config.ANCHO_PANTALLA // 2 - 140, 535, 280, 48, "salir")
-        ]
-        for x, y, ancho, alto, accion in botones:
-            if self._dentro_boton(mouse_pos, x, y, ancho, alto):
+        ancho = self._u(280)
+        alto = self._u(48)
+        x = self.config.ANCHO_PANTALLA // 2 - ancho // 2
+        for _texto, accion, y in self.BOTONES_MENU:
+            if self._dentro_boton(mouse_pos, x, self._u(y), ancho, alto):
                 return accion
         return None
 
@@ -616,8 +629,40 @@ class Interfaz:
                 render = self.fuente_pequena.render(texto, True, color)
                 pantalla.blit(render, (100, y))
 
-        hover = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 100, 680, 200, 50)
-        self.dibujar_boton(pantalla, "Volver", self.config.ANCHO_PANTALLA // 2 - 100, 680, 200, 50, hover)
+        x, y, ancho, alto = self._rect_ayuda_volver()
+        hover = mouse_pos and self._dentro_boton(mouse_pos, x, y, ancho, alto)
+        self.dibujar_boton(pantalla, "Volver", x, y, ancho, alto, hover)
+
+    def _rect_ayuda_volver(self):
+        """Devuelve el rectángulo del botón Volver de la pantalla de ayuda.
+
+        Limita la posición vertical para que el botón quede visible en
+        resoluciones reducidas (por ejemplo la versión web a 720p).
+
+        Returns:
+            tuple: (x, y, ancho, alto) en píxeles de la pantalla actual.
+        """
+        ancho, alto = 200, 50
+        x = self.config.ANCHO_PANTALLA // 2 - ancho // 2
+        y = min(680, self.config.ALTO_PANTALLA - alto - 10)
+        return x, y, ancho, alto
+
+    def obtener_accion_ayuda(self, mouse_pos, click):
+        """Obtiene la acción de la pantalla de ayuda según el mouse.
+
+        Args:
+            mouse_pos (tuple): Posición del mouse.
+            click (bool): True si se hizo click.
+
+        Returns:
+            str: "volver" si se pulsó el botón, o None.
+        """
+        if not click:
+            return None
+        x, y, ancho, alto = self._rect_ayuda_volver()
+        if self._dentro_boton(mouse_pos, x, y, ancho, alto):
+            return "volver"
+        return None
 
     def dibujar_countdown(self, pantalla, numero):
         """Dibuja el countdown antes de iniciar la partida.

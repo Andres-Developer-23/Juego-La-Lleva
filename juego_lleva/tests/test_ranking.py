@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 
-from servicios.ranking import RankingService
+from juego_lleva.servicios.ranking import RankingService
 
 
 class TestRankingService(unittest.TestCase):

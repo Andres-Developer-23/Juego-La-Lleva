@@ -1,21 +1,19 @@
 # Assets del juego
 
-Coloca aqui tus imagenes para el juego.
+Los recursos se generan de forma procedural (no se descargan de internet).
 
-## Sprites de jugadores
-- `sprites/jugador1.png` - Sprite del jugador 1
-- `sprites/jugador2.png` - Sprite del jugador 2
-- `sprites/lleva.png` - Sprite cuando un jugador es "la lleva" (opcional)
+## Fondos
 
-Tamano recomendado: 32x32 o 64x64 pixeles (se escalara automaticamente).
+- `fondos/campo.png` - Fondo del campo de juego.
+- `fondos/menu_bg.jpg` - Fondo del menú principal.
 
-## Fondo del juego
-- `fondos/campo.png` - Imagen de fondo del campo de juego
+Se regeneran con:
 
-Tamano recomendado: 1024x768 pixeles o similar (se escalara automaticamente).
+```bash
+SDL_VIDEODRIVER=dummy python juego_lleva/assets/generar_assets.py
+```
 
-## Recursos gratuitos
-- https://gamebetweenthelines.itch.io/top-down-pixel-art-characters
-- https://jotart.itch.io/2d-char-pack
-- https://opengameart.org/content/pixel-art-fantasy-game-battlegrounds
-- https://kenmi-art.itch.io/cute-fantasy-rpg
+## Personajes
+
+Los jugadores se dibujan proceduralmente en `views/jugador_view.py` (cabeza,
+torso, brazos y piernas animados), por lo que no hay sprites externos.

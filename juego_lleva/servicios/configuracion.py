@@ -3,7 +3,7 @@
 import json
 import os
 
-from core.config import Config
+from juego_lleva.core.config import Config
 
 
 class ConfiguracionService:

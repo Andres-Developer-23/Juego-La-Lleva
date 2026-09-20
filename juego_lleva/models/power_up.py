@@ -2,7 +2,7 @@
 
 import pygame
 
-from core.config import Config
+from juego_lleva.core.config import Config
 
 
 class PowerUp:

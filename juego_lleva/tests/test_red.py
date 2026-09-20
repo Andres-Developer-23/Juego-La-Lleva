@@ -4,15 +4,14 @@ import threading
 import time
 import unittest
 
-from red.protocolo import (
-    TIPO_CONEXION,
+from juego_lleva.red.protocolo import (
     TIPO_ESTADO,
     TIPO_POSICION,
     codificar_mensaje,
     extraer_linea,
 )
-from red.servidor import ServidorMultijugador
-from red.cliente import ClienteMultijugador
+from juego_lleva.red.servidor import ServidorMultijugador
+from juego_lleva.red.cliente import ClienteMultijugador
 
 
 def esperar(condicion, intentos=100, pausa=0.01):

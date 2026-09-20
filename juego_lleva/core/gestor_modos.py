@@ -2,8 +2,8 @@
 
 import random
 
-from controles.controlador import Controlador
-from models.entorno import Entorno
+from juego_lleva.controles.controlador import Controlador
+from juego_lleva.models.entorno import Entorno
 
 
 class GestorModos:

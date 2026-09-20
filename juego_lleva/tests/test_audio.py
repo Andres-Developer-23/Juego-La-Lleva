@@ -8,7 +8,7 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 import pygame
 
-from servicios.audio import ServicioAudio
+from juego_lleva.servicios.audio import ServicioAudio
 
 
 @unittest.skipUnless("SDL_AUDIODRIVER" in os.environ, "sin driver de audio")

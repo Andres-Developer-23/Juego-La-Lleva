@@ -11,21 +11,19 @@ class EfectoView:
 
     DURACION = 0.6
     COLOR_ANILLO = (255, 215, 0)
-    COLOR_PARTICULA = (255, 215, 0)
-
-    COLORES_POWER_UP = {
-        "velocidad": (0, 220, 100),
-        "escudo": (100, 150, 255),
-        "congelar": (80, 200, 255),
-    }
+    _MAX_CACHE = 512
 
     def __init__(self):
         """Inicializa la vista de efectos sin estados persistentes."""
         self.tiempo_animacion = 0
         self._anillos = {}
+        self._particulas = {}
 
     def _superficie_anillo(self, color, radio, alfa):
         """Devuelve (cacheando) la superficie circular de un anillo.
+
+        La caché se vacía al superar ``_MAX_CACHE`` entradas para acotar la
+        memoria durante partidas largas.
 
         Args:
             color (tuple): Color RGB del anillo.
@@ -35,12 +33,36 @@ class EfectoView:
         Returns:
             pygame.Surface: Anillo pre-renderizado reutilizable.
         """
+        if len(self._anillos) >= self._MAX_CACHE:
+            self._anillos.clear()
         clave = (color, radio, alfa)
         if clave not in self._anillos:
             capa = pygame.Surface((radio * 2, radio * 2), pygame.SRCALPHA)
             pygame.draw.circle(capa, (*color, alfa), (radio, radio), radio, 4)
             self._anillos[clave] = capa
         return self._anillos[clave]
+
+    def _superficie_particula(self, color, radio):
+        """Devuelve (cacheando) la superficie circular de una partícula.
+
+        Se blit-ea con ``BLEND_ADD`` (que ignora el alfa), por lo que la caché
+        solo depende del color y el radio.
+
+        Args:
+            color (tuple): Color RGB de la partícula.
+            radio (int): Radio de la partícula.
+
+        Returns:
+            pygame.Surface: Partícula pre-renderizada reutilizable.
+        """
+        if len(self._particulas) >= self._MAX_CACHE:
+            self._particulas.clear()
+        clave = (color, radio)
+        if clave not in self._particulas:
+            superficie = pygame.Surface((radio * 2, radio * 2), pygame.SRCALPHA)
+            pygame.draw.circle(superficie, color, (radio, radio), radio)
+            self._particulas[clave] = superficie
+        return self._particulas[clave]
 
     def _color_efecto(self, efecto):
         """Devuelve el color del anillo según el efecto.
@@ -93,7 +115,6 @@ class EfectoView:
 
             x = efecto['x']
             y = efecto['y']
-            es_anillo_solo = efecto.get("anillo_solo", False)
 
             anillo = self._superficie_anillo(color, int(12 + progreso * 150), alfa)
             pantalla.blit(anillo, (int(x) - anillo.get_width() // 2, int(y) - anillo.get_height() // 2))
@@ -107,11 +128,8 @@ class EfectoView:
                           special_flags=pygame.BLEND_ADD)
 
             for particula in efecto['particulas']:
-                alfa_p = int(255 * (particula['vida'] / 0.7))
                 radio_p = max(2, int(6 * particula['vida'] / 0.7))
-                superficie = pygame.Surface((radio_p * 2, radio_p * 2), pygame.SRCALPHA)
-                pygame.draw.circle(superficie, (*color, alfa_p),
-                                   (radio_p, radio_p), radio_p)
+                superficie = self._superficie_particula(color, radio_p)
                 pantalla.blit(superficie, (int(particula['x']) - radio_p,
                                            int(particula['y']) - radio_p),
                               special_flags=pygame.BLEND_ADD)

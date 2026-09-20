@@ -7,9 +7,9 @@ import unittest
 os.environ['SDL_VIDEODRIVER'] = 'dummy'
 os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
-from core.config import Config
-from models.jugador_humano import JugadorHumano
-from models.jugador_ia import JugadorIA
+from juego_lleva.core.config import Config
+from juego_lleva.models.jugador_humano import JugadorHumano
+from juego_lleva.models.jugador_ia import JugadorIA
 
 
 class TestJugadorIA(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestJugadorIA(unittest.TestCase):
         self.humano.x = 500
         self.ia.x = 300
         self.ia.es_lleva = False
-        self.ia.config.VARIACION_IA = 0
+        self.ia.variacion_ia = 0
         self.ia.mover(delta_tiempo=1.0)
         self.assertLess(self.ia.x, 300)
 
@@ -33,7 +33,7 @@ class TestJugadorIA(unittest.TestCase):
         self.humano.x = 500
         self.ia.x = 300
         self.ia.es_lleva = True
-        self.ia.config.VARIACION_IA = 0
+        self.ia.variacion_ia = 0
         self.ia.mover(delta_tiempo=1.0)
         self.assertGreater(self.ia.x, 300)
 

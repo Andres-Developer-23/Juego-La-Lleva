@@ -4,8 +4,8 @@ import asyncio
 import sys
 
 import pygame
-from core.config import Config
-from core.juego import Juego
+from juego_lleva.core.config import Config
+from juego_lleva.core.juego import Juego
 
 ES_PLATAFORMA_WEB = sys.platform == "emscripten"
 

@@ -73,3 +73,7 @@ web/build.log
 web/servidor.log
 web/tunel.log
 web/*.log
+
+# Datos locales del juego (preferencias y ranking)
+juego_lleva/assets/settings.json
+juego_lleva/assets/ranking.json

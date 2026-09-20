@@ -1,6 +1,6 @@
 """Modelo que representa a un jugador controlado por un humano."""
 
-from models.jugador import Jugador
+from juego_lleva.models.jugador import Jugador
 
 
 class JugadorHumano(Jugador):

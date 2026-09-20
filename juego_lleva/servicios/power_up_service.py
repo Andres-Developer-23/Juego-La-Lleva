@@ -3,8 +3,8 @@
 import random
 
 import pygame
-from core.config import Config
-from models.power_up import PowerUp
+from juego_lleva.core.config import Config
+from juego_lleva.models.power_up import PowerUp
 
 
 class PowerUpService:
@@ -56,6 +56,8 @@ class PowerUpService:
         if tipo == "velocidad":
             return (colector.id, "velocidad", self.config.POWER_UP_EFECTO_VELOCIDAD_SEG)
         if tipo == "congelar":
+            if rival is None:
+                return None
             return (rival.id, "congelar", self.config.POWER_UP_CONGELAR_SEG)
         if tipo == "escudo":
             return (colector.id, "escudo", None)

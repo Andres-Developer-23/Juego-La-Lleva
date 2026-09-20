@@ -7,7 +7,7 @@ os.environ['SDL_AUDIODRIVER'] = 'dummy'
 
 import pygame
 
-from controles.tactil import ControladorTactil
+from juego_lleva.controles.tactil import ControladorTactil
 
 
 class TestControladorTactil(unittest.TestCase):

@@ -9,7 +9,24 @@ class ObstaculoView:
 
     def __init__(self):
         """Inicializa la vista del obstáculo."""
-        pass
+        self._sombras = {}
+
+    def _sombra(self, ancho, alto):
+        """Devuelve (cacheando) la sombra de una caja.
+
+        Args:
+            ancho (int): Ancho de la caja.
+            alto (int): Alto de la caja.
+
+        Returns:
+            pygame.Surface: Sombra pre-renderizada reutilizable.
+        """
+        clave = (ancho, alto)
+        if clave not in self._sombras:
+            sombra = pygame.Surface((ancho + 4, alto + 4), pygame.SRCALPHA)
+            pygame.draw.rect(sombra, (0, 0, 0, 80), (2, 2, ancho, alto), border_radius=6)
+            self._sombras[clave] = sombra
+        return self._sombras[clave]
 
     def renderizar(self, pantalla, obstaculo, tiempo_animacion=0):
         """Renderiza un obstáculo en la pantalla.
@@ -31,8 +48,7 @@ class ObstaculoView:
             pantalla: Superficie de pygame donde dibujar.
             obstaculo: Objeto obstáculo a renderizar.
         """
-        sombra = pygame.Surface((obstaculo.ancho + 4, obstaculo.alto + 4), pygame.SRCALPHA)
-        pygame.draw.rect(sombra, (0, 0, 0, 80), (2, 2, obstaculo.ancho, obstaculo.alto), border_radius=6)
+        sombra = self._sombra(obstaculo.ancho, obstaculo.alto)
         pantalla.blit(sombra, (obstaculo.x, obstaculo.y))
 
         pygame.draw.rect(pantalla, (80, 70, 60),

@@ -44,4 +44,10 @@ def extraer_linea(buffer):
     linea, resto = buffer.split("\n", 1)
     if not linea:
         return None, resto
-    return json.loads(linea), resto
+    try:
+        mensaje = json.loads(linea)
+    except json.JSONDecodeError:
+        return None, resto
+    if not isinstance(mensaje, dict):
+        return None, resto
+    return mensaje, resto
