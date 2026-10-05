@@ -10,11 +10,22 @@ rivales). Los eventos con ``seq`` del servidor se convierten en toasts.
 import asyncio
 import math
 import time
+from collections import defaultdict, deque
 
 import pygame
 from juego_lleva.constantes_entrada import (
-    K_a, K_d, K_DOWN, K_LEFT, K_RIGHT, K_s, K_SPACE, K_UP, K_w,
-    K_ESCAPE, K_r, KEYDOWN,
+    K_a,
+    K_d,
+    K_DOWN,
+    K_LEFT,
+    K_RIGHT,
+    K_s,
+    K_SPACE,
+    K_UP,
+    K_w,
+    K_ESCAPE,
+    K_r,
+    KEYDOWN,
 )
 
 from juego_lleva.models.jugador_humano import JugadorHumano
@@ -32,17 +43,25 @@ from juego_lleva.red.sala import (
 _MAX_EVENTOS_SALTO = 6
 _ERRORES_MAX = 5
 _MAX_DT_PREDICCION = 0.3
+_RETARDO_INTERPOLACION = 0.08
+_MUESTRAS_INTERPOLACION = 12
 
 _TECLAS_JUGADOR = {
-    "arriba": K_w, "abajo": K_s,
-    "izquierda": K_a, "derecha": K_d,
+    "arriba": K_w,
+    "abajo": K_s,
+    "izquierda": K_a,
+    "derecha": K_d,
 }
 
 _CODIGOS_A_ACCION = {
-    K_w: "arriba", K_s: "abajo",
-    K_a: "izquierda", K_d: "derecha",
-    K_UP: "arriba", K_DOWN: "abajo",
-    K_LEFT: "izquierda", K_RIGHT: "derecha",
+    K_w: "arriba",
+    K_s: "abajo",
+    K_a: "izquierda",
+    K_d: "derecha",
+    K_UP: "arriba",
+    K_DOWN: "abajo",
+    K_LEFT: "izquierda",
+    K_RIGHT: "derecha",
 }
 
 
@@ -61,13 +80,18 @@ class ControladorEnLinea:
         self.juego = juego
         if cliente is None:
             from juego_lleva.red.cliente_web import ClienteEnLinea
+
             cliente = ClienteEnLinea()
         self.cliente = cliente
         self.fase = self.FASE_CONECTANDO
         self.mi_id = None
         self.listo = False
-        self.entrada = {"arriba": False, "abajo": False,
-                        "izquierda": False, "derecha": False}
+        self.entrada = {
+            "arriba": False,
+            "abajo": False,
+            "izquierda": False,
+            "derecha": False,
+        }
         self.snapshot = None
         self._tarea_sync = None
         self._detenido = False
@@ -83,6 +107,9 @@ class ControladorEnLinea:
         self._t_cur = 0.0
         self._sim_local = None
         self._t_pred = 0.0
+        self._historial_posiciones = defaultdict(
+            lambda: deque(maxlen=_MUESTRAS_INTERPOLACION)
+        )
 
     def _config(self):
         """Devuelve la configuración del juego."""
@@ -156,8 +183,7 @@ class ControladorEnLinea:
             self._render_conectando("Conectando con la sala...")
             return
         try:
-            respuesta = await self.cliente.unirse(
-                j.nombres[0] if j.nombres else "J1")
+            respuesta = await self.cliente.unirse(j.nombres[0] if j.nombres else "J1")
         except Exception:
             respuesta = {"error": "sin_conexion"}
 
@@ -176,16 +202,19 @@ class ControladorEnLinea:
             j._salir_en_linea()
             return
         if codigo == self.cliente.PARTIDA_EN_CURSO:
-            j._mostrar_toast("La partida ya comenzó, vuelve luego",
-                             self._config().COLOR_DORADO)
+            j._mostrar_toast(
+                "La partida ya comenzó, vuelve luego", self._config().COLOR_DORADO
+            )
             j._salir_en_linea()
             return
 
         self._intentos_unirse += 1
-        self._proximo_intento = ahora + (
-            1.0 if self._intentos_unirse < 5 else 3.0)
-        self._render_conectando("Reintentando conexion..." if self._intentos_unirse > 1
-                                else "Conectando con la sala...")
+        self._proximo_intento = ahora + (1.0 if self._intentos_unirse < 5 else 3.0)
+        self._render_conectando(
+            "Reintentando conexion..."
+            if self._intentos_unirse > 1
+            else "Conectando con la sala..."
+        )
 
     # ------------------------------------------------------------------
     # Sincronización (bucle de fondo)
@@ -227,7 +256,10 @@ class ControladorEnLinea:
     def _interrumpir(self, mensaje):
         """Cancela la sincronización y pide volver al menú."""
         self.juego._mostrar_toast(mensaje, self._config().COLOR_LLEVA)
-        if self._tarea_sync is not None and self._tarea_sync is not asyncio.current_task():
+        if (
+            self._tarea_sync is not None
+            and self._tarea_sync is not asyncio.current_task()
+        ):
             self._tarea_sync.cancel()
         self._tarea_sync = None
         self._detenido = True
@@ -257,8 +289,9 @@ class ControladorEnLinea:
         for jugador, vista in zip(j.jugadores, j.jugadores_views):
             existentes[jugador.id] = (jugador, vista)
 
+        instante = time.monotonic()
         self._t_prev = self._t_cur
-        self._t_cur = time.monotonic()
+        self._t_cur = instante
 
         jugadores = []
         vistas = []
@@ -267,17 +300,29 @@ class ControladorEnLinea:
             if id_j in existentes:
                 jugador, vista = existentes[id_j]
             else:
-                jugador = JugadorHumano(dato["x"], dato["y"], id_j,
-                                        dict(_TECLAS_JUGADOR), dato.get("nombre"))
+                jugador = JugadorHumano(
+                    dato["x"],
+                    dato["y"],
+                    id_j,
+                    dict(_TECLAS_JUGADOR),
+                    dato.get("nombre"),
+                )
                 vista = JugadorView()
             self._aplicar_datos_jugador(jugador, dato)
             self._prev[id_j] = self._cur.get(id_j, (dato["x"], dato["y"]))
             self._cur[id_j] = (dato["x"], dato["y"])
+            self._historial_posiciones[id_j].append(
+                (instante, float(dato["x"]), float(dato["y"]))
+            )
             if id_j == self.mi_id:
                 if self._sim_local is None:
                     self._sim_local = JugadorHumano(
-                        dato["x"], dato["y"], id_j,
-                        dict(_TECLAS_JUGADOR), dato.get("nombre"))
+                        dato["x"],
+                        dato["y"],
+                        id_j,
+                        dict(_TECLAS_JUGADOR),
+                        dato.get("nombre"),
+                    )
                 self._aplicar_datos_jugador(self._sim_local, dato)
             jugadores.append(jugador)
             vistas.append(vista)
@@ -290,6 +335,7 @@ class ControladorEnLinea:
             if id_j not in presentes:
                 self._prev.pop(id_j, None)
                 self._cur.pop(id_j, None)
+                self._historial_posiciones.pop(id_j, None)
 
     @staticmethod
     def _aplicar_datos_jugador(jugador, dato):
@@ -311,18 +357,20 @@ class ControladorEnLinea:
         """Copia obstáculos, power-ups, tiempos y efectos del snapshot."""
         j = self.juego
         j.gestor_modos.entorno.obstaculos = [
-            self._a_obstaculo(o) for o in respuesta.get("obstaculos", [])]
+            self._a_obstaculo(o) for o in respuesta.get("obstaculos", [])
+        ]
         j.power_ups = [
-            PowerUp(p["x"], p["y"], p["tipo"])
-            for p in respuesta.get("power_ups", [])]
+            PowerUp(p["x"], p["y"], p["tipo"]) for p in respuesta.get("power_ups", [])
+        ]
         j.tiempo_ronda = float(respuesta.get("tiempo_ronda", 0.0))
         j.duracion_ronda = float(respuesta.get("duracion_ronda", j.duracion_ronda))
         j.puntaje_service.tiempos_lleva = {
-            int(k): float(v)
-            for k, v in respuesta.get("tiempos_lleva", {}).items()}
+            int(k): float(v) for k, v in respuesta.get("tiempos_lleva", {}).items()
+        }
         j.efectos_activos = {
             int(k): {t: float(v) for t, v in timers.items()}
-            for k, timers in respuesta.get("efectos_activos", {}).items()}
+            for k, timers in respuesta.get("efectos_activos", {}).items()
+        }
 
     @staticmethod
     def _a_obstaculo(dato):
@@ -357,15 +405,22 @@ class ControladorEnLinea:
             j.audio.clic()
         elif tipo == "escudo":
             objetivo = nombres.get(evento.get("objetivo"), "Un jugador")
-            j._mostrar_toast(f"¡{objetivo} bloqueo el toque!", self._config().COLOR_LIBRE)
+            j._mostrar_toast(
+                f"¡{objetivo} bloqueo el toque!", self._config().COLOR_LIBRE
+            )
             j.audio.beep()
         elif tipo == "power_up":
-            etiquetas = {"velocidad": "¡velocidad!", "escudo": "¡escudo!",
-                         "congelar": "¡congelado!"}
+            etiquetas = {
+                "velocidad": "¡velocidad!",
+                "escudo": "¡escudo!",
+                "congelar": "¡congelado!",
+            }
             efecto = evento.get("efecto")
             objetivo = nombres.get(evento.get("objetivo"), "Un jugador")
-            j._mostrar_toast(f"{objetivo} {etiquetas.get(efecto, 'power-up')}",
-                             self._config().COLOR_DORADO)
+            j._mostrar_toast(
+                f"{objetivo} {etiquetas.get(efecto, 'power-up')}",
+                self._config().COLOR_DORADO,
+            )
             j.audio.beep()
         elif tipo == "fin":
             j._mostrar_toast("¡Fin de ronda!", self._config().COLOR_DORADO)
@@ -386,8 +441,10 @@ class ControladorEnLinea:
             accion = _CODIGOS_A_ACCION.get(codigo)
             if accion:
                 activas.add(accion)
-        return {accion: accion in activas
-                for accion in ("arriba", "abajo", "izquierda", "derecha")}
+        return {
+            accion: accion in activas
+            for accion in ("arriba", "abajo", "izquierda", "derecha")
+        }
 
     # ------------------------------------------------------------------
     # Gestión por fase
@@ -413,8 +470,9 @@ class ControladorEnLinea:
                     j._salir_en_linea()
                     return
 
-        j.interfaz.dibujar_sala(j.pantalla, self.snapshot, self.mi_id,
-                                self.listo, j.mouse_pos)
+        j.interfaz.dibujar_sala(
+            j.pantalla, self.snapshot, self.mi_id, self.listo, j.mouse_pos
+        )
         j.renderer.flip()
 
     def _gestionar_countdown(self):
@@ -437,6 +495,7 @@ class ControladorEnLinea:
             if evento.type == KEYDOWN and evento.key == K_ESCAPE:
                 j._salir_en_linea()
                 return
+        self._actualizar_flash_toque(delta_tiempo)
         self._aplicar_posicion_mostrada()
         j.renderer.frame_juego(delta_tiempo)
         self._dibujar_indicador_red()
@@ -449,17 +508,29 @@ class ControladorEnLinea:
             if evento.type == KEYDOWN and evento.key == K_ESCAPE:
                 j._salir_en_linea()
                 return
+        self._actualizar_flash_toque(delta_tiempo)
         self._aplicar_posicion_mostrada()
         j.renderer.frame_juego(delta_tiempo)
         ganador = self.snapshot.get("ganador") if self.snapshot else None
-        puntajes = {int(k): float(v)
-                    for k, v in (self.snapshot or {}).get("tiempos_lleva", {}).items()}
+        puntajes = {
+            int(k): float(v)
+            for k, v in (self.snapshot or {}).get("tiempos_lleva", {}).items()
+        }
         j.interfaz.dibujar_fin_ronda(
-            j.pantalla, ganador, puntajes, j.mouse_pos, j.jugadores,
+            j.pantalla,
+            ganador,
+            puntajes,
+            j.mouse_pos,
+            j.jugadores,
             mostrar_botones=False,
-            texto_hint="La siguiente ronda comienza pronto...   (ESC: salir)")
+            texto_hint="La siguiente ronda comienza pronto...   (ESC: salir)",
+        )
         self._dibujar_indicador_red()
         j.renderer.flip()
+
+    def _actualizar_flash_toque(self, delta_tiempo):
+        """Decrementa el destello de toque y lo limita a cero en modo online."""
+        self.juego.toque_flash = max(0.0, self.juego.toque_flash - delta_tiempo)
 
     # ------------------------------------------------------------------
     # Interpolación / predicción
@@ -469,10 +540,6 @@ class ControladorEnLinea:
         """Predice al jugador local y suaviza el movimiento de los rivales."""
         j = self.juego
         ahora = time.monotonic()
-        rango_interp = self._t_cur - self._t_prev
-        beta = 1.0
-        if self._prev and rango_interp > 1e-4:
-            beta = min(1.0, max(0.0, (ahora - self._t_prev) / rango_interp))
         for jugador in j.jugadores:
             id_j = jugador.id
             actual = self._cur.get(id_j)
@@ -481,11 +548,30 @@ class ControladorEnLinea:
             anterior = self._prev.get(id_j)
             if id_j == self.mi_id:
                 self._predecir_jugador_local(jugador, ahora)
+            elif self._historial_posiciones.get(id_j):
+                jugador.x, jugador.y = self._interpolar_posicion_remota(id_j, ahora)
             elif anterior is not None:
-                jugador.x = anterior[0] + (actual[0] - anterior[0]) * beta
-                jugador.y = anterior[1] + (actual[1] - anterior[1]) * beta
+                jugador.x, jugador.y = actual
             else:
                 jugador.x, jugador.y = actual
+
+    def _interpolar_posicion_remota(self, id_j, ahora):
+        """Interpola snapshots remotos en un instante ligeramente retrasado."""
+        muestras = self._historial_posiciones[id_j]
+        objetivo = ahora - _RETARDO_INTERPOLACION
+        anterior = muestras[0]
+        for actual in tuple(muestras)[1:]:
+            if objetivo <= actual[0]:
+                intervalo = actual[0] - anterior[0]
+                if intervalo <= 1e-6:
+                    return actual[1], actual[2]
+                proporcion = min(1.0, max(0.0, (objetivo - anterior[0]) / intervalo))
+                return (
+                    anterior[1] + (actual[1] - anterior[1]) * proporcion,
+                    anterior[2] + (actual[2] - anterior[2]) * proporcion,
+                )
+            anterior = actual
+        return anterior[1], anterior[2]
 
     def _predecir_jugador_local(self, jugador, ahora):
         """Simula la física del jugador local desde el último snapshot.
@@ -503,16 +589,22 @@ class ControladorEnLinea:
         if dt <= 0:
             jugador.x, jugador.y = sim.x, sim.y
             return
-        presionadas = {codigo: self.entrada[accion]
-                       for accion, codigo in _TECLAS_JUGADOR.items()}
+        presionadas = {
+            codigo: self.entrada[accion] for accion, codigo in _TECLAS_JUGADOR.items()
+        }
         en_zona = j.servicio_colision.jugador_en_zona_lenta(
-            sim, j.gestor_modos.entorno.obstaculos)
+            sim, j.gestor_modos.entorno.obstaculos
+        )
         sim.mover(presionadas, en_zona, dt)
         for obstaculo in j.gestor_modos.entorno.obstaculos:
-            if (obstaculo.tipo == "caja"
-                    and j.servicio_colision.detectar_colision_jugador_obstaculo(
-                        sim, obstaculo)):
+            if (
+                obstaculo.tipo == "caja"
+                and j.servicio_colision.detectar_colision_jugador_obstaculo(
+                    sim, obstaculo
+                )
+            ):
                 j.servicio_colision.resolver_obstaculo(sim, obstaculo)
+            self._t_pred = ahora
         jugador.x, jugador.y = sim.x, sim.y
         jugador.vx, jugador.vy = sim.vx, sim.vy
         jugador.direccion_cara = sim.direccion_cara
@@ -534,6 +626,11 @@ class ControladorEnLinea:
         j = self.juego
         j.pantalla.fill(self._config().COLOR_FONDO)
         render = j.interfaz.fuente_subtitulo.render(texto, True, (255, 255, 255))
-        j.pantalla.blit(render, (self._config().ANCHO_PANTALLA // 2 - render.get_width() // 2,
-                                 self._config().ALTO_PANTALLA // 2 - render.get_height() // 2))
+        j.pantalla.blit(
+            render,
+            (
+                self._config().ANCHO_PANTALLA // 2 - render.get_width() // 2,
+                self._config().ALTO_PANTALLA // 2 - render.get_height() // 2,
+            ),
+        )
         j.renderer.flip()

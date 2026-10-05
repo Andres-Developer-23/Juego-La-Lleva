@@ -2,14 +2,15 @@
 
 import asyncio
 import builtins
+import copy
 import os
 import tempfile
 import types
 import unittest
 from unittest import mock
 
-os.environ['SDL_VIDEODRIVER'] = 'dummy'
-os.environ['SDL_AUDIODRIVER'] = 'dummy'
+os.environ["SDL_VIDEODRIVER"] = "dummy"
+os.environ["SDL_AUDIODRIVER"] = "dummy"
 
 import pygame
 
@@ -26,53 +27,90 @@ from juego_lleva.ui.acciones import ALTO_BOTON_MENU, rects_sala
 def _jugador(id_j, x, y, es_lleva=False, nombre=None):
     """Construye un jugador como lo envía el servidor."""
     return {
-        "id": id_j, "nombre": nombre or f"J{id_j + 1}", "x": x, "y": y,
-        "vx": 0.0, "vy": 0.0, "es_lleva": es_lleva, "direccion_cara": 1,
-        "velocidad_abs": 0.0, "escudo": False, "congelado": 0.0,
-        "tropezando": 0.0, "factor_velocidad": 1.0, "listo": True,
+        "id": id_j,
+        "nombre": nombre or f"J{id_j + 1}",
+        "x": x,
+        "y": y,
+        "vx": 0.0,
+        "vy": 0.0,
+        "es_lleva": es_lleva,
+        "direccion_cara": 1,
+        "velocidad_abs": 0.0,
+        "escudo": False,
+        "congelado": 0.0,
+        "tropezando": 0.0,
+        "factor_velocidad": 1.0,
+        "listo": True,
     }
 
 
 def snapshot_sala():
     """Snapshot mínimo de la sala de espera."""
     return {
-        "ok": True, "tipo": "sala", "fase": FASE_ESPERANDO, "mi_id": 2,
-        "jugadores_online": 2, "max_jugadores": 3,
-        "jugadores": [_jugador(0, 100.0, 200.0, True, "Ana"),
-                      _jugador(1, 400.0, 200.0, False, "Beto"),
-                      _jugador(2, 700.0, 500.0, False, "Yo")],
-        "obstaculos": [], "power_ups": [], "eventos": [],
-        "tiempos_lleva": {"0": 5.0}, "efectos_activos": {},
+        "ok": True,
+        "tipo": "sala",
+        "fase": FASE_ESPERANDO,
+        "mi_id": 2,
+        "jugadores_online": 2,
+        "max_jugadores": 3,
+        "jugadores": [
+            _jugador(0, 100.0, 200.0, True, "Ana"),
+            _jugador(1, 400.0, 200.0, False, "Beto"),
+            _jugador(2, 700.0, 500.0, False, "Yo"),
+        ],
+        "obstaculos": [],
+        "power_ups": [],
+        "eventos": [],
+        "tiempos_lleva": {"0": 5.0},
+        "efectos_activos": {},
     }
 
 
 def snapshot_jugando(mi_id=2, eventos=None):
     """Snapshot de la partida en curso."""
     return {
-        "ok": True, "tipo": "partida", "fase": FASE_JUGANDO, "mi_id": mi_id,
-        "jugadores_online": 3, "max_jugadores": 3,
-        "jugadores": [_jugador(0, 100.0, 200.0, True, "Ana"),
-                      _jugador(1, 400.0, 200.0, False, "Beto"),
-                      _jugador(2, 700.0, 500.0, False, "Yo")],
+        "ok": True,
+        "tipo": "partida",
+        "fase": FASE_JUGANDO,
+        "mi_id": mi_id,
+        "jugadores_online": 3,
+        "max_jugadores": 3,
+        "jugadores": [
+            _jugador(0, 100.0, 200.0, True, "Ana"),
+            _jugador(1, 400.0, 200.0, False, "Beto"),
+            _jugador(2, 700.0, 500.0, False, "Yo"),
+        ],
         "obstaculos": [{"x": 300.0, "y": 300.0, "tipo": "libro"}],
         "power_ups": [{"x": 500.0, "y": 400.0, "tipo": "velocidad"}],
         "eventos": eventos or [],
-        "tiempos_lleva": {"0": 5.0}, "efectos_activos": {"1": {"congelar": 1.0}},
-        "tiempo_ronda": 30.0, "duracion_ronda": 60.0,
+        "tiempos_lleva": {"0": 5.0},
+        "efectos_activos": {"1": {"congelar": 1.0}},
+        "tiempo_ronda": 30.0,
+        "duracion_ronda": 60.0,
     }
 
 
 def snapshot_fin(ganador=0):
     """Snapshot de la fase de fin de ronda."""
     return {
-        "ok": True, "tipo": "fin", "fase": FASE_FIN, "mi_id": 2,
-        "jugadores_online": 3, "max_jugadores": 3,
-        "jugadores": [_jugador(0, 100.0, 200.0, True, "Ana"),
-                      _jugador(1, 400.0, 200.0, False, "Beto"),
-                      _jugador(2, 700.0, 500.0, False, "Yo")],
-        "obstaculos": [], "power_ups": [], "eventos": [],
+        "ok": True,
+        "tipo": "fin",
+        "fase": FASE_FIN,
+        "mi_id": 2,
+        "jugadores_online": 3,
+        "max_jugadores": 3,
+        "jugadores": [
+            _jugador(0, 100.0, 200.0, True, "Ana"),
+            _jugador(1, 400.0, 200.0, False, "Beto"),
+            _jugador(2, 700.0, 500.0, False, "Yo"),
+        ],
+        "obstaculos": [],
+        "power_ups": [],
+        "eventos": [],
         "tiempos_lleva": {"0": 10.0, "1": 50.0, "2": 0.0},
-        "efectos_activos": {}, "tiempo_ronda": 60.0, "duracion_ronda": 60.0,
+        "efectos_activos": {},
+        "tiempo_ronda": 60.0,
+        "duracion_ronda": 60.0,
         "ganador": ganador,
     }
 
@@ -107,8 +145,13 @@ class ClienteSimulado:
     async def unirse(self, nombre):
         if self.fallar_unirse:
             return {"error": "sin_conexion"}
-        return {"ok": True, "token": "t1", "id": 2, "nombre": nombre,
-                "fase": FASE_ESPERANDO}
+        return {
+            "ok": True,
+            "token": "t1",
+            "id": 2,
+            "nombre": nombre,
+            "fase": FASE_ESPERANDO,
+        }
 
     async def sincronizar(self, entrada=None, listo=None):
         self.envios.append({"entrada": entrada, "listo": listo})
@@ -134,7 +177,9 @@ class TestControladorEnLinea(unittest.TestCase):
         self.juego = Juego(Config())
         self.dir_tmp = tempfile.TemporaryDirectory()
         self.juego.configuracion.ruta = os.path.join(self.dir_tmp.name, "settings.json")
-        self.juego.ranking_service.ruta = os.path.join(self.dir_tmp.name, "ranking.json")
+        self.juego.ranking_service.ruta = os.path.join(
+            self.dir_tmp.name, "ranking.json"
+        )
         self.juego.config.PLATAFORMA_WEB = True
 
     def tearDown(self):
@@ -195,8 +240,14 @@ class TestControladorEnLinea(unittest.TestCase):
         eventos = [
             {"seq": 1, "tipo": "escudo", "objetivo": 1, "x": 400.0, "y": 200.0},
             {"seq": 2, "tipo": "toque", "a": 0, "b": 1, "x": 300.0, "y": 300.0},
-            {"seq": 3, "tipo": "power_up", "objetivo": 2, "efecto": "congelar",
-             "x": 500.0, "y": 200.0},
+            {
+                "seq": 3,
+                "tipo": "power_up",
+                "objetivo": 2,
+                "efecto": "congelar",
+                "x": 500.0,
+                "y": 200.0,
+            },
             {"seq": 4, "tipo": "fin", "ganador": 0},
         ]
         ctrl = self._crear_ctrl(ClienteSimulado([snapshot_jugando(eventos=eventos)]))
@@ -207,6 +258,17 @@ class TestControladorEnLinea(unittest.TestCase):
         self.assertTrue(any("congelado" in t for t in textos), textos)
         self.assertTrue(any("Fin de ronda" in t for t in textos), textos)
 
+    def test_flash_de_toque_desaparece_durante_frames_online(self):
+        ctrl = self._crear_ctrl(ClienteSimulado())
+        self.juego.toque_flash = 0.12
+
+        ctrl._gestionar_juego(0.05)
+        self.assertAlmostEqual(self.juego.toque_flash, 0.07, places=6)
+        ctrl._gestionar_juego(0.05)
+        self.assertAlmostEqual(self.juego.toque_flash, 0.02, places=6)
+        ctrl._gestionar_juego(0.05)
+        self.assertEqual(self.juego.toque_flash, 0.0)
+
     def test_fin_ronda_aplica_puntajes(self):
         ctrl = self._crear_ctrl(ClienteSimulado([snapshot_fin()]))
         self._bombear(ctrl, veces=10)
@@ -216,8 +278,14 @@ class TestControladorEnLinea(unittest.TestCase):
 
     def test_power_up_objetivo_muestra_toast(self):
         eventos = [
-            {"seq": 1, "tipo": "power_up", "objetivo": 1, "efecto": "congelar",
-             "x": 500.0, "y": 200.0},
+            {
+                "seq": 1,
+                "tipo": "power_up",
+                "objetivo": 1,
+                "efecto": "congelar",
+                "x": 500.0,
+                "y": 200.0,
+            },
         ]
         ctrl = self._crear_ctrl(ClienteSimulado([snapshot_jugando(eventos=eventos)]))
         self._bombear(ctrl, veces=10)
@@ -248,8 +316,9 @@ class TestControladorEnLinea(unittest.TestCase):
             await ctrl.actualizar(0.03)
             await asyncio.sleep(0)
             ctrl.detener()
-            self.assertIsNotNone(cliente.token,
-                                 "el token se borró antes de enviar salir")
+            self.assertIsNotNone(
+                cliente.token, "el token se borró antes de enviar salir"
+            )
             await asyncio.sleep(0)
             self.assertEqual(cliente.salidas, 1)
             await asyncio.sleep(0)
@@ -314,6 +383,55 @@ class TestControladorEnLinea(unittest.TestCase):
         rival = self.juego.jugadores[0]
         self.assertEqual(rival.x, 100.0)
 
+    def test_prediccion_local_integra_solo_el_delta_desde_el_frame_anterior(self):
+        """La predicción por frame no debe volver a integrar todo el RTT."""
+        ctrl = self._crear_ctrl(ClienteSimulado([snapshot_jugando()]))
+        self._bombear(ctrl)
+        ctrl.entrada["derecha"] = True
+        ctrl._t_pred = 100.0
+        ctrl._sim_local.x = 700.0
+        ctrl._sim_local.y = 500.0
+        ctrl._sim_local.vx = 0.0
+        ctrl._sim_local.vy = 0.0
+
+        esperado = copy.deepcopy(ctrl._sim_local)
+        teclas = {
+            pygame.K_w: False,
+            pygame.K_s: False,
+            pygame.K_a: False,
+            pygame.K_d: True,
+        }
+        esperado.mover(teclas, False, 0.1)
+        esperado.mover(teclas, False, 0.1)
+
+        local = self.juego.jugadores[2]
+        ctrl._predecir_jugador_local(local, 100.1)
+        primera_x = local.x
+        ctrl._predecir_jugador_local(local, 100.2)
+
+        self.assertEqual(ctrl._t_pred, 100.2)
+        self.assertAlmostEqual(local.x, esperado.x, places=5)
+        self.assertAlmostEqual(local.vx, esperado.vx, places=5)
+        self.assertGreater(local.x, primera_x)
+
+    def test_rivales_se_interpolan_entre_snapshots_con_buffer(self):
+        """Renderiza el punto a 80 ms antes del tiempo actual, entre muestras."""
+        ctrl = self._crear_ctrl(ClienteSimulado())
+        primera = snapshot_jugando()
+        segunda = snapshot_jugando()
+        primera["jugadores"][0]["x"] = 0.0
+        segunda["jugadores"][0]["x"] = 100.0
+
+        with mock.patch(
+            "juego_lleva.core.controlador_enlinea.time.monotonic",
+            side_effect=(9.99, 10.0, 10.09, 10.1, 10.14),
+        ):
+            ctrl._aplicar_snapshot(primera)
+            ctrl._aplicar_snapshot(segunda)
+            ctrl._aplicar_posicion_mostrada()
+
+        self.assertAlmostEqual(self.juego.jugadores[0].x, 60.0, places=5)
+
     def test_prediccion_respeto_limite_de_pantalla(self):
         """La predicción no debe sacar al jugador local de la pantalla."""
         ctrl = self._crear_ctrl(ClienteSimulado([snapshot_jugando()]))
@@ -324,8 +442,9 @@ class TestControladorEnLinea(unittest.TestCase):
             ctrl._predecir_jugador_local(local, ctrl._t_pred + 0.3)
             ctrl._predecir_jugador_local(local, ctrl._t_pred + 0.6)
         self.assertGreaterEqual(local.x, 0.0)
-        self.assertLessEqual(local.x, ctrl._config().ANCHO_PANTALLA -
-                             ctrl._config().TAMAÑO_JUGADOR)
+        self.assertLessEqual(
+            local.x, ctrl._config().ANCHO_PANTALLA - ctrl._config().TAMAÑO_JUGADOR
+        )
 
     def test_cliente_web_constantes_y_atributos(self):
         cliente = ClienteEnLinea()
@@ -341,6 +460,7 @@ class TestControladorEnLinea(unittest.TestCase):
         Con ``asyncio.sleep(0)`` el bucle solo rota dentro de wasm, la cola de
         tareas del navegador se congela y los clics llegan segundos tarde.
         """
+
         class Ubicacion:
             origin = "http://localhost:8000"
 
@@ -361,7 +481,8 @@ class TestControladorEnLinea(unittest.TestCase):
                 def pglalleva(self):
                     self.leidas += 1
                     return types.SimpleNamespace(
-                        done=self.leidas > 2, error="", text='{"ok": true}')
+                        done=self.leidas > 2, error="", text='{"ok": true}'
+                    )
 
             window = Ventana()
 
@@ -382,7 +503,9 @@ class TestControladorEnLinea(unittest.TestCase):
         builtins.__EMSCRIPTEN__ = plataforma
         try:
             with mock.patch.object(cliente_web, "asyncio", asyncio_falso):
-                texto = asyncio.run(ClienteEnLinea()._post_wasm("/api/sala/sync", {"a": 1}))
+                texto = asyncio.run(
+                    ClienteEnLinea()._post_wasm("/api/sala/sync", {"a": 1})
+                )
         finally:
             if anterior is None:
                 del builtins.__EMSCRIPTEN__
@@ -392,13 +515,16 @@ class TestControladorEnLinea(unittest.TestCase):
         self.assertEqual(texto, '{"ok": true}')
         self.assertEqual(ventana.url, "http://localhost:8000/api/sala/sync")
         self.assertTrue(asyncio_falso.esperas, "el sondeo no llegó a esperar")
-        self.assertTrue(all(retardo > 0 for retardo in asyncio_falso.esperas),
-                        f"el sondeo gira sin ceder: {asyncio_falso.esperas}")
+        self.assertTrue(
+            all(retardo > 0 for retardo in asyncio_falso.esperas),
+            f"el sondeo gira sin ceder: {asyncio_falso.esperas}",
+        )
 
     def test_snapshot_sala_maneja_mouse_pos(self):
         ctrl = self._crear_ctrl(ClienteSimulado([snapshot_sala()]))
         x_listo, x_salir, y_btn, btn_ancho, btn_alto = rects_sala(
-            self.juego.config.ANCHO_PANTALLA)
+            self.juego.config.ANCHO_PANTALLA
+        )
         centro_listo = (x_listo + btn_ancho // 2, y_btn + btn_alto // 2)
         centro_salir = (x_salir + btn_ancho // 2, y_btn + btn_alto // 2)
 
@@ -414,13 +540,17 @@ class TestControladorEnLinea(unittest.TestCase):
         self.assertIsNotNone(ctrl.snapshot)
         self.assertNotEqual(
             self.juego.pantalla.get_at((x_listo + 20, y_btn + 8))[:3],
-            Config.COLOR_FONDO)
+            Config.COLOR_FONDO,
+        )
         self.assertEqual(
-            self.juego.acciones_ui.detectar_sala(centro_listo, True), "listo")
+            self.juego.acciones_ui.detectar_sala(centro_listo, True), "listo"
+        )
         self.assertEqual(
-            self.juego.acciones_ui.detectar_sala(centro_salir, True), "salir")
+            self.juego.acciones_ui.detectar_sala(centro_salir, True), "salir"
+        )
         self.assertIsNone(
-            self.juego.acciones_ui.detectar_sala((centro_listo[0], y_btn - 1), True))
+            self.juego.acciones_ui.detectar_sala((centro_listo[0], y_btn - 1), True)
+        )
 
     def test_procesar_frame_async_flujo_completo(self):
         """Recorre captura -> dispatch online -> fundido como en la web."""
@@ -457,42 +587,51 @@ class TestGeometriaBotones(unittest.TestCase):
 
         self.assertEqual(
             acciones.detectar_menu((x, y_primero + alto - 1), True, botones, escala),
-            botones[0][1])
+            botones[0][1],
+        )
         self.assertIsNone(
-            acciones.detectar_menu((x, y_primero + alto), True, botones, escala))
+            acciones.detectar_menu((x, y_primero + alto), True, botones, escala)
+        )
         self.assertEqual(
-            acciones.detectar_menu((x, y_segundo), True, botones, escala),
-            botones[1][1])
+            acciones.detectar_menu((x, y_segundo), True, botones, escala), botones[1][1]
+        )
         self.assertIsNone(
-            acciones.detectar_menu((x, y_primero + 1), False, botones, escala))
+            acciones.detectar_menu((x, y_primero + 1), False, botones, escala)
+        )
 
     def test_sala_con_cuatro_jugadores_dibuja_donde_se_detecta(self):
         juego = Juego(Config())
         ancho = juego.config.ANCHO_PANTALLA
         snapshot = snapshot_sala()
         snapshot["jugadores"] = [
-            _jugador(i, 100.0 + i * 50, 200.0, i == 0) for i in range(4)]
+            _jugador(i, 100.0 + i * 50, 200.0, i == 0) for i in range(4)
+        ]
         snapshot["jugadores_online"] = 4
         snapshot["max_jugadores"] = 4
         pantalla = pygame.Surface((ancho, juego.config.ALTO_PANTALLA))
-        juego.interfaz.dibujar_sala(pantalla, snapshot, mi_id=2, listo=True,
-                                    mouse_pos=None)
+        juego.interfaz.dibujar_sala(
+            pantalla, snapshot, mi_id=2, listo=True, mouse_pos=None
+        )
 
         x_listo, x_salir, y_btn, btn_ancho, btn_alto = rects_sala(ancho)
         self.assertNotEqual(
-            pantalla.get_at((x_listo + 20, y_btn + 8))[:3], Config.COLOR_FONDO)
+            pantalla.get_at((x_listo + 20, y_btn + 8))[:3], Config.COLOR_FONDO
+        )
         self.assertNotEqual(
-            pantalla.get_at((x_salir + 20, y_btn + 8))[:3], Config.COLOR_FONDO)
+            pantalla.get_at((x_salir + 20, y_btn + 8))[:3], Config.COLOR_FONDO
+        )
 
         centro_listo = (x_listo + btn_ancho // 2, y_btn + btn_alto // 2)
-        self.assertEqual(juego.acciones_ui.detectar_sala(centro_listo, True),
-                         "listo")
+        self.assertEqual(juego.acciones_ui.detectar_sala(centro_listo, True), "listo")
         self.assertEqual(
             juego.acciones_ui.detectar_sala(
-                (x_salir + btn_ancho // 2, y_btn + btn_alto // 2), True),
-            "salir")
-        self.assertIsNone(juego.acciones_ui.detectar_sala(
-            (centro_listo[0], y_btn - 1), True))
+                (x_salir + btn_ancho // 2, y_btn + btn_alto // 2), True
+            ),
+            "salir",
+        )
+        self.assertIsNone(
+            juego.acciones_ui.detectar_sala((centro_listo[0], y_btn - 1), True)
+        )
 
 
 if __name__ == "__main__":
