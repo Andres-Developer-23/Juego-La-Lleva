@@ -45,6 +45,8 @@ _ERRORES_MAX = 5
 _MAX_DT_PREDICCION = 0.3
 _RETARDO_INTERPOLACION = 0.08
 _MUESTRAS_INTERPOLACION = 12
+_DURACION_CORRECCION_LOCAL = 0.12
+_MAX_CORRECCION_LOCAL = 120.0
 
 _TECLAS_JUGADOR = {
     "arriba": K_w,
@@ -107,6 +109,8 @@ class ControladorEnLinea:
         self._t_cur = 0.0
         self._sim_local = None
         self._t_pred = 0.0
+        self._correccion_local = (0.0, 0.0)
+        self._t_correccion_local = 0.0
         self._historial_posiciones = defaultdict(
             lambda: deque(maxlen=_MUESTRAS_INTERPOLACION)
         )
@@ -297,8 +301,11 @@ class ControladorEnLinea:
         vistas = []
         for dato in sorted(datos, key=lambda d: d["id"]):
             id_j = dato["id"]
+            posicion_mostrada = None
             if id_j in existentes:
                 jugador, vista = existentes[id_j]
+                if id_j == self.mi_id:
+                    posicion_mostrada = (jugador.x, jugador.y)
             else:
                 jugador = JugadorHumano(
                     dato["x"],
@@ -324,6 +331,17 @@ class ControladorEnLinea:
                         dato.get("nombre"),
                     )
                 self._aplicar_datos_jugador(self._sim_local, dato)
+                if posicion_mostrada is not None:
+                    dx = posicion_mostrada[0] - self._sim_local.x
+                    dy = posicion_mostrada[1] - self._sim_local.y
+                    if math.hypot(dx, dy) <= _MAX_CORRECCION_LOCAL:
+                        self._correccion_local = (dx, dy)
+                    else:
+                        self._correccion_local = (0.0, 0.0)
+                    self._t_correccion_local = instante
+                else:
+                    self._correccion_local = (0.0, 0.0)
+                    self._t_correccion_local = instante
             jugadores.append(jugador)
             vistas.append(vista)
 
@@ -595,7 +613,8 @@ class ControladorEnLinea:
         en_zona = j.servicio_colision.jugador_en_zona_lenta(
             sim, j.gestor_modos.entorno.obstaculos
         )
-        sim.mover(presionadas, en_zona, dt)
+        if sim.congelado <= 0:
+            sim.mover(presionadas, en_zona, dt)
         for obstaculo in j.gestor_modos.entorno.obstaculos:
             if (
                 obstaculo.tipo == "caja"
@@ -604,8 +623,23 @@ class ControladorEnLinea:
                 )
             ):
                 j.servicio_colision.resolver_obstaculo(sim, obstaculo)
-            self._t_pred = ahora
-        jugador.x, jugador.y = sim.x, sim.y
+        self._t_pred = ahora
+
+        transcurrido = max(0.0, ahora - self._t_correccion_local)
+        factor = math.exp(-transcurrido / _DURACION_CORRECCION_LOCAL)
+        dx, dy = self._correccion_local
+        dx *= factor
+        dy *= factor
+        self._correccion_local = (dx, dy)
+        self._t_correccion_local = ahora
+        jugador.x = min(
+            max(0.0, sim.x + dx),
+            self._config().ANCHO_PANTALLA - self._config().TAMAÑO_JUGADOR,
+        )
+        jugador.y = min(
+            max(0.0, sim.y + dy),
+            self._config().ALTO_PANTALLA - self._config().TAMAÑO_JUGADOR,
+        )
         jugador.vx, jugador.vy = sim.vx, sim.vy
         jugador.direccion_cara = sim.direccion_cara
         jugador.velocidad_abs = sim.velocidad_abs

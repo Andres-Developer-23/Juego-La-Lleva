@@ -414,6 +414,55 @@ class TestControladorEnLinea(unittest.TestCase):
         self.assertAlmostEqual(local.vx, esperado.vx, places=5)
         self.assertGreater(local.x, primera_x)
 
+    def test_correccion_autoritativa_local_se_aplica_suavemente(self):
+        """Una diferencia pequeña del servidor no debe teletransportar el sprite."""
+        ctrl = self._crear_ctrl(ClienteSimulado([snapshot_jugando()]))
+        self._bombear(ctrl)
+        local = self.juego.jugadores[2]
+        posicion_anterior = local.x
+
+        nueva = snapshot_jugando()
+        nueva["jugadores"][2]["x"] += 20.0
+        with mock.patch(
+            "juego_lleva.core.controlador_enlinea.time.monotonic", return_value=100.0
+        ):
+            ctrl._aplicar_snapshot(nueva)
+            ctrl._predecir_jugador_local(local, 100.06)
+            posicion_intermedia = local.x
+            ctrl._predecir_jugador_local(local, 100.12)
+
+        self.assertGreater(posicion_intermedia, posicion_anterior)
+        self.assertLess(posicion_intermedia, posicion_anterior + 20.0)
+        self.assertGreater(local.x, posicion_intermedia)
+
+    def test_prediccion_local_congelada_no_avanza(self):
+        """La predicción respeta el bloqueo de movimiento del servidor."""
+        ctrl = self._crear_ctrl(ClienteSimulado([snapshot_jugando()]))
+        self._bombear(ctrl)
+        local = self.juego.jugadores[2]
+        ctrl._sim_local.congelado = 1.0
+        ctrl.entrada["derecha"] = True
+        ctrl.juego.gestor_modos.entorno.obstaculos = []
+        x_inicial = ctrl._sim_local.x
+
+        ctrl._predecir_jugador_local(local, ctrl._t_pred + 0.1)
+
+        self.assertAlmostEqual(ctrl._sim_local.x, x_inicial)
+        self.assertAlmostEqual(local.x, x_inicial)
+
+    def test_reloj_prediccion_avanza_sin_obstaculos(self):
+        """Un escenario sin cajas no debe volver a integrar el tiempo anterior."""
+        ctrl = self._crear_ctrl(ClienteSimulado([snapshot_jugando()]))
+        self._bombear(ctrl)
+        local = self.juego.jugadores[2]
+        ctrl.juego.gestor_modos.entorno.obstaculos = []
+        ctrl.entrada["derecha"] = True
+        ctrl._t_pred = 100.0
+
+        ctrl._predecir_jugador_local(local, 100.1)
+
+        self.assertEqual(ctrl._t_pred, 100.1)
+
     def test_rivales_se_interpolan_entre_snapshots_con_buffer(self):
         """Renderiza el punto a 80 ms antes del tiempo actual, entre muestras."""
         ctrl = self._crear_ctrl(ClienteSimulado())
