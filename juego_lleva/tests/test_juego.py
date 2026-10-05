@@ -24,6 +24,9 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         self.juego = Juego(Config())
         self.dir_tmp = tempfile.TemporaryDirectory()
         self.juego.configuracion.ruta = os.path.join(self.dir_tmp.name, "settings.json")
+        # el ranking también va a un archivo temporal: si se usara el de
+        # assets/, cada corrida de la suite añadiría una partida de mentira
+        self.juego.ranking_service.ruta = os.path.join(self.dir_tmp.name, "ranking.json")
 
     def tearDown(self):
         self.dir_tmp.cleanup()
@@ -126,6 +129,19 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         juego._normalizar_nombres()
         self.assertEqual(len(juego.nombres[0]), 12)
 
+    def test_toque_web_escala_las_coordenadas(self):
+        juego = self.juego
+        juego.config.PLATAFORMA_WEB = True
+        pygame.event.clear()
+        pygame.event.post(pygame.event.Event(
+            pygame.FINGERDOWN, x=0.25, y=0.5, finger_id=0))
+        juego._capturar_entrada()
+        self.assertTrue(juego.click_realizado)
+        self.assertEqual(
+            juego.mouse_pos,
+            (int(0.25 * juego.config.ANCHO_PANTALLA),
+             int(0.5 * juego.config.ALTO_PANTALLA)))
+
     def test_toast_se_agrega_y_expira(self):
         juego = self.juego
         juego._mostrar_toast("Hola", (255, 0, 0))
@@ -143,6 +159,9 @@ class TestReglaClasicaIntegracion(unittest.TestCase):
         juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN)]
         juego.ctrl_menu.menu_principal()
         self.assertEqual(juego.opcion_menu, 2)
+        juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_DOWN)]
+        juego.ctrl_menu.menu_principal()
+        self.assertEqual(juego.opcion_menu, 3)
         juego.eventos_pendientes = [pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN)]
         juego.ctrl_menu.menu_principal()
         self.assertEqual(juego.estado, "ayuda")

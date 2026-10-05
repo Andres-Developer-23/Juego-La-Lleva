@@ -1,6 +1,10 @@
 """Módulo principal del juego que orquesta todos los componentes MVC."""
 
 import pygame
+from juego_lleva.constantes_entrada import (
+    QUIT, MOUSEBUTTONDOWN, KEYDOWN, K_F11, K_m,
+    FINGERDOWN, FINGERMOTION, FINGERUP,
+)
 from juego_lleva.controles.tactil import ControladorTactil
 from juego_lleva.models.jugador_humano import JugadorHumano
 from juego_lleva.models.jugador_ia import JugadorIA
@@ -21,6 +25,7 @@ from juego_lleva.core.estado import EstadoJuego
 from juego_lleva.core.gestor_modos import GestorModos
 from juego_lleva.core.controlador_menu import ControladorMenu
 from juego_lleva.core.controlador_partida import ControladorPartida
+from juego_lleva.core.controlador_enlinea import ControladorEnLinea
 from juego_lleva.core.controlador_pantallas import ControladorPantallas
 from juego_lleva.core.renderer import Renderer
 
@@ -99,6 +104,7 @@ class Juego:
         self.ctrl_menu = ControladorMenu(self)
         self.ctrl_partida = ControladorPartida(self)
         self.ctrl_pantallas = ControladorPantallas(self)
+        self.ctrl_enlinea = None
 
     def _cargar_fondo(self):
         """Carga la imagen de fondo del juego."""
@@ -130,8 +136,8 @@ class Juego:
         while True:
             self._procesar_frame()
 
-    def _procesar_frame(self):
-        """Procesa un frame completo del juego."""
+    def _capturar_entrada(self):
+        """Lee eventos, mouse y audio del frame y devuelve el delta de tiempo."""
         tiempo_actual = pygame.time.get_ticks() / 1000.0
         delta_tiempo = tiempo_actual - self.tiempo_anterior
         self.tiempo_anterior = tiempo_actual
@@ -141,20 +147,24 @@ class Juego:
         self.eventos_pendientes = []
 
         for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
+            if evento.type == QUIT:
                 pygame.quit()
                 import sys
                 sys.exit()
-            if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            if evento.type == MOUSEBUTTONDOWN and evento.button == 1:
                 self.click_realizado = True
-            if evento.type in (pygame.FINGERDOWN, pygame.FINGERMOTION, pygame.FINGERUP):
+            if evento.type in (FINGERDOWN, FINGERMOTION, FINGERUP):
+                if self.config.PLATAFORMA_WEB and evento.type == FINGERDOWN:
+                    self.click_realizado = True
+                    self.mouse_pos = (int(evento.x * self.config.ANCHO_PANTALLA),
+                                      int(evento.y * self.config.ALTO_PANTALLA))
                 self.tactil.procesar_evento(evento)
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_F11:
+            if evento.type == KEYDOWN:
+                if evento.key == K_F11:
                     self._alternar_pantalla_completa()
                     self.configuracion.establecer(
                         "pantalla_completa", bool(pygame.display.is_fullscreen()))
-                elif evento.key == pygame.K_m and self.estado != EstadoJuego.NOMBRES:
+                elif evento.key == K_m and self.estado != EstadoJuego.NOMBRES:
                     self.musica_activa = not self.musica_activa
             self.eventos_pendientes.append(evento)
 
@@ -162,7 +172,10 @@ class Juego:
         self._gestionar_musica()
         if self.toasts:
             self.toasts = self.interfaz.actualizar_toasts(self.toasts, delta_tiempo)
+        return delta_tiempo
 
+    def _dispatch_estado(self, delta_tiempo):
+        """Delega el frame según el estado actual del juego."""
         if self.estado == EstadoJuego.MENU:
             self.ctrl_menu.menu_principal()
         elif self.estado == EstadoJuego.NOMBRES:
@@ -181,12 +194,38 @@ class Juego:
             self.ctrl_menu.pantalla_ranking()
         elif self.estado == EstadoJuego.OPCIONES:
             self.ctrl_menu.pantalla_opciones()
+        elif self.estado == EstadoJuego.EN_LINEA:
+            # La sala en línea es solo de la versión web; el escritorio redirige
+            # al navegador. Esta red evita que el bucle síncrono se quede mudo.
+            self._volver_al_menu()
+            self._mostrar_toast(
+                "El modo en linea se juega en el navegador", self.config.COLOR_DORADO)
 
+    def _finalizar_frame(self, delta_tiempo):
+        """Aplica el fundido si está activo; los toasts los pinta Renderer.flip."""
         if self.fade_alpha > 0:
             self.fade_alpha = max(
                 0, self.fade_alpha - delta_tiempo * 255 / self.config.DURACION_FUNDIDO_SEG)
             self.renderer.fade()
             self.renderer.flip()
+
+    def _procesar_frame(self):
+        """Procesa un frame completo del juego (escritorio)."""
+        delta_tiempo = self._capturar_entrada()
+        self._dispatch_estado(delta_tiempo)
+        self._finalizar_frame(delta_tiempo)
+
+    async def procesar_frame_async(self):
+        """Procesa un frame completo del juego (web, con soporte asíncrono)."""
+        delta_tiempo = self._capturar_entrada()
+        if self.estado == EstadoJuego.EN_LINEA:
+            if self.ctrl_enlinea is not None:
+                await self.ctrl_enlinea.actualizar(delta_tiempo)
+            else:
+                self._salir_en_linea()
+        else:
+            self._dispatch_estado(delta_tiempo)
+        self._finalizar_frame(delta_tiempo)
 
     def _mostrar_toast(self, texto, color=None):
         """Muestra una notificación breve en pantalla."""
@@ -209,6 +248,9 @@ class Juego:
 
     def _iniciar_partida(self):
         """Prepara y arranca una partida."""
+        if self.modo == "en_linea":
+            self._iniciar_partida_en_linea()
+            return
         self._normalizar_nombres()
         self.toasts.clear()
         if self.modo == "un_jugador":
@@ -241,6 +283,32 @@ class Juego:
                 nombre = f"J{i + 1}"
             self.nombres[i] = nombre[:12]
 
+    def _iniciar_partida_en_linea(self):
+        """Prepara el modo en línea con el nombre escrito."""
+        nombre = (self.nombres[0] if self.nombres else "").strip() or "J1"
+        self.nombres = [nombre[:12]]
+        self.jugadores.clear()
+        self.jugadores_views.clear()
+        self.efectos.clear()
+        self.power_ups.clear()
+        self.power_up_timer = 0
+        self.efectos_activos.clear()
+        self.particulas_rastro.clear()
+        self.toasts.clear()
+        self.tiempo_ronda = 0
+        self.tiempo_inicio_lleva = 0
+        self.ctrl_enlinea = ControladorEnLinea(self)
+        self.estado = EstadoJuego.EN_LINEA
+        self.interfaz.en_linea = True
+        self.fade_alpha = 255
+
+    def _salir_en_linea(self):
+        """Abandona la sala en línea y vuelve al menú."""
+        if self.ctrl_enlinea is not None:
+            self.ctrl_enlinea.detener()
+            self.ctrl_enlinea = None
+        self._volver_al_menu()
+
     def _aplicar_dificultad_ia(self):
         """Aplica la dificultad seleccionada al jugador controlado por IA."""
         nivel = self.configuracion.obtener("dificultad_ia")
@@ -264,6 +332,7 @@ class Juego:
         self.efectos_activos.clear()
         self.particulas_rastro.clear()
         self.toasts.clear()
+        self.interfaz.en_linea = False
         self.fade_alpha = 255
         self._ranking_registrado = False
 

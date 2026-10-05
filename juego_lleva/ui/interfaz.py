@@ -1,39 +1,49 @@
 """Módulo de interfaz de usuario que maneja todos los elementos visuales del juego."""
 
 import pygame
+from juego_lleva.fuentes import fuente
 import math
 import random
 from juego_lleva.core.config import Config
+from juego_lleva.ui.acciones import ALTO_BOTON_MENU, rects_sala
 
 
 class Interfaz:
     """Clase que gestiona toda la interfaz de usuario del juego."""
 
-    acciones_menu = ["un_jugador", "jugar", "ayuda", "ranking", "opciones", "salir"]
+    acciones_menu = ["un_jugador", "jugar", "en_linea", "ayuda", "ranking", "opciones", "salir"]
     BOTONES_MENU = [
         ("Un Jugador", "un_jugador", 260),
-        ("Multijugador", "jugar", 315),
-        ("Como Jugar", "ayuda", 370),
-        ("Ranking", "ranking", 425),
-        ("Opciones", "opciones", 480),
-        ("Salir", "salir", 535),
+        ("Multijugador", "jugar", 308),
+        ("En Linea", "en_linea", 356),
+        ("Como Jugar", "ayuda", 404),
+        ("Ranking", "ranking", 452),
+        ("Opciones", "opciones", 500),
+        ("Salir", "salir", 548),
     ]
 
     def __init__(self):
         """Inicializa la interfaz con fuentes y partículas decorativas."""
         self.config = Config()
-        self.fuente_titulo = pygame.font.SysFont(None, 72)
-        self.fuente_subtitulo = pygame.font.SysFont(None, 36)
-        self.fuente_boton = pygame.font.SysFont(None, 32)
-        self.fuente_pequena = pygame.font.SysFont(None, 24)
-        self.fuente_hud = pygame.font.SysFont(None, 28)
-        self.fuente_grande = pygame.font.SysFont(None, 56)
-        self.fuente_countdown = pygame.font.SysFont(None, 120)
+        if not self.config.PLATAFORMA_WEB:
+            # En escritorio el botón lleva al navegador, no a la sala local.
+            self.BOTONES_MENU = [
+                ("En Linea (web)" if accion == "en_linea" else texto, accion, y)
+                for texto, accion, y in self.BOTONES_MENU
+            ]
+        self.fuente_titulo = fuente(72)
+        self.fuente_subtitulo = fuente(36)
+        self.fuente_boton = fuente(32)
+        self.fuente_pequena = fuente(24)
+        self.fuente_hud = fuente(28)
+        self.fuente_grande = fuente(56)
+        self.fuente_countdown = fuente(120)
         self.tiempo_animacion = 0
         self.particulas = []
         self._particulas_cache = {}
         self._fondo_menu = None
         self.escala_ui = self.config.ALTO_PANTALLA / 1080.0
+        self.en_linea = False
         self._generar_particulas_menu()
 
     def _u(self, valor):
@@ -196,9 +206,10 @@ class Interfaz:
             alto (int): Alto del botón.
 
         Returns:
-            bool: True si la posición está dentro del botón.
+            bool: True si la posición está dentro del botón (el borde derecho
+                e inferior quedan fuera, para no solapar botones contiguos).
         """
-        return x <= pos[0] <= x + ancho and y <= pos[1] <= y + alto
+        return x <= pos[0] < x + ancho and y <= pos[1] < y + alto
 
     def _describir_efectos(self, tipos, jugador):
         """Convierte los efectos activos de un jugador en un texto corto.
@@ -312,7 +323,7 @@ class Interfaz:
                 pulso = abs(math.sin(self.tiempo_animacion * 6)) * 0.3 + 0.7
                 color_texto = (int(255 * pulso), int(100 * pulso), int(100 * pulso))
             else:
-                color = self.config.COLOR_JUGADOR_1 if jugador.id == 0 else self.config.COLOR_JUGADOR_2
+                color = self.config.color_jugador(jugador.id)
                 indicador = "Libre"
                 color_texto = (255, 255, 255)
 
@@ -335,8 +346,9 @@ class Interfaz:
 
             x_jugador += self._u(240)
 
-        texto_salir = self.fuente_pequena.render("P: Pausa", True, self.config.COLOR_PLATA)
-        pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA - self._u(80), self._u(28)))
+        texto_control = "ESC: Salir" if self.en_linea else "P: Pausa"
+        texto_salir = self.fuente_pequena.render(texto_control, True, self.config.COLOR_PLATA)
+        pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA - self._u(90), self._u(28)))
 
     def _cargar_fondo_menu(self):
         """Carga y escala el fondo del menú la primera vez que se dibuja."""
@@ -398,7 +410,7 @@ class Interfaz:
         self.dibujar_panel(pantalla, x_panel, self._u(240), ancho_panel, alto_panel, 160)
 
         ancho_boton = self._u(280)
-        alto_boton = self._u(48)
+        alto_boton = self._u(ALTO_BOTON_MENU)
         x_boton = self.config.ANCHO_PANTALLA // 2 - ancho_boton // 2
         for i, (texto_boton, _accion, y) in enumerate(self.BOTONES_MENU):
             y_btn = self._u(y)
@@ -434,7 +446,7 @@ class Interfaz:
 
         for i in range(total_campos):
             y_campo = 200 + i * 120
-            color_label = self.config.COLOR_JUGADOR_1 if i == 0 else self.config.COLOR_JUGADOR_2
+            color_label = self.config.color_jugador(i)
             label = self.fuente_boton.render(f"Jugador {i + 1}:", True, color_label)
             pantalla.blit(label, (self.config.ANCHO_PANTALLA // 2 - 180, y_campo))
 
@@ -663,7 +675,9 @@ class Interfaz:
         texto_salir = self.fuente_pequena.render("ESC: continuar |  Q: volver al menu", True, self.config.COLOR_PLATA)
         pantalla.blit(texto_salir, (self.config.ANCHO_PANTALLA // 2 - texto_salir.get_width() // 2, 500))
 
-    def dibujar_fin_ronda(self, pantalla, ganador, puntajes, mouse_pos=None, jugadores=None):
+    def dibujar_fin_ronda(self, pantalla, ganador, puntajes, mouse_pos=None, jugadores=None,
+                          mostrar_botones=True,
+                          texto_hint="ENTER/R: Revancha   |   ESC: Menu"):
         """Dibuja la pantalla de fin de ronda con resultados.
 
         Args:
@@ -672,6 +686,10 @@ class Interfaz:
             puntajes (dict): Diccionario con tiempos de cada jugador.
             mouse_pos (tuple, optional): Posición del mouse para efectos hover.
             jugadores (list, optional): Lista de jugadores.
+            mostrar_botones (bool): True dibuja los botones de revancha/menú
+                (False en la versión en línea, donde la ronda sigue desde el
+                servidor).
+            texto_hint (str): Texto de atajos que se muestra al pie.
         """
         overlay = pygame.Surface((self.config.ANCHO_PANTALLA, self.config.ALTO_PANTALLA), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
@@ -722,14 +740,13 @@ class Interfaz:
         y_btn = self._u(510)
         x_revancha = self.config.ANCHO_PANTALLA // 2 - btn_ancho - self._u(20)
         x_menu = self.config.ANCHO_PANTALLA // 2 + self._u(20)
-        hover_revancha = mouse_pos and self._dentro_boton(mouse_pos, x_revancha, y_btn, btn_ancho, btn_alto)
-        hover_menu = mouse_pos and self._dentro_boton(mouse_pos, x_menu, y_btn, btn_ancho, btn_alto)
+        if mostrar_botones:
+            hover_revancha = mouse_pos and self._dentro_boton(mouse_pos, x_revancha, y_btn, btn_ancho, btn_alto)
+            hover_menu = mouse_pos and self._dentro_boton(mouse_pos, x_menu, y_btn, btn_ancho, btn_alto)
+            self.dibujar_boton(pantalla, "Revancha", x_revancha, y_btn, btn_ancho, btn_alto, hover_revancha)
+            self.dibujar_boton(pantalla, "Menu", x_menu, y_btn, btn_ancho, btn_alto, hover_menu)
 
-        self.dibujar_boton(pantalla, "Revancha", x_revancha, y_btn, btn_ancho, btn_alto, hover_revancha)
-        self.dibujar_boton(pantalla, "Menu", x_menu, y_btn, btn_ancho, btn_alto, hover_menu)
-
-        texto_atajos = self.fuente_pequena.render(
-            "ENTER/R: Revancha   |   ESC: Menu", True, self.config.COLOR_PLATA)
+        texto_atajos = self.fuente_pequena.render(texto_hint, True, self.config.COLOR_PLATA)
         pantalla.blit(texto_atajos, (self.config.ANCHO_PANTALLA // 2 - texto_atajos.get_width() // 2, self._u(600)))
 
     def dibujar_ranking(self, pantalla, entradas, mouse_pos=None):
@@ -797,5 +814,98 @@ class Interfaz:
 
         hover_volver = mouse_pos and self._dentro_boton(mouse_pos, self.config.ANCHO_PANTALLA // 2 - 100, 580, 200, 50)
         self.dibujar_boton(pantalla, "Volver", self.config.ANCHO_PANTALLA // 2 - 100, 580, 200, 50, hover_volver)
+
+    def dibujar_sala(self, pantalla, snapshot, mi_id=None, listo=False, mouse_pos=None):
+        """Dibuja la sala de espera del modo en línea.
+
+        Args:
+            pantalla: Superficie de pygame donde dibujar.
+            snapshot (dict, optional): Último snapshot de la sala, o None.
+            mi_id (int, optional): Id del jugador local.
+            listo (bool): True si el jugador local está marcado como listo.
+            mouse_pos (tuple, optional): Posición del mouse para efectos hover.
+        """
+        pantalla.fill(self.config.COLOR_FONDO)
+        self.dibujar_particulas_menu(pantalla)
+
+        titulo = self.fuente_grande.render("Sala en Linea", True, self.config.COLOR_DORADO)
+        pantalla.blit(titulo, (self.config.ANCHO_PANTALLA // 2 - titulo.get_width() // 2, 30))
+
+        if snapshot is None:
+            espera = self.fuente_subtitulo.render("Conectando con la sala...", True, (255, 255, 255))
+            pantalla.blit(espera, (self.config.ANCHO_PANTALLA // 2 - espera.get_width() // 2,
+                                   self.config.ALTO_PANTALLA // 2))
+            self.dibujar_panel(pantalla, self.config.ANCHO_PANTALLA // 2 - 280, 150, 560, 360, 180)
+            return
+
+        subtitulo = self.fuente_pequena.render(
+            "Abre esta misma pagina en cada dispositivo para unirte", True, self.config.COLOR_PLATA)
+        pantalla.blit(subtitulo, (self.config.ANCHO_PANTALLA // 2 - subtitulo.get_width() // 2, 90))
+
+        cx = self.config.ANCHO_PANTALLA // 2
+        self.dibujar_panel(pantalla, cx - 280, 140, 560, 350, 190)
+
+        conectados = snapshot.get("jugadores_online", 0)
+        maximo = snapshot.get("max_jugadores", 0)
+        cabecera = self.fuente_boton.render(
+            f"Jugadores conectados ({conectados}/{maximo})", True, self.config.COLOR_PLATA)
+        pantalla.blit(cabecera, (cx - 245, 160))
+
+        listos = snapshot.get("listos", {})
+        victorias = snapshot.get("victorias", {})
+
+        for jugador in snapshot.get("jugadores", []):
+            id_j = jugador.get("id")
+            nombre = jugador.get("nombre", f"J{id_j + 1}")
+            color = self.config.color_jugador(id_j)
+            y_fila = 210 + id_j * 55
+            if y_fila > 400:
+                break
+
+            pygame.draw.circle(pantalla, color, (cx - 245, y_fila + 12), 11)
+            pygame.draw.circle(pantalla, (255, 255, 255), (cx - 245, y_fila + 12), 11, 1)
+
+            texto_nombre = self.fuente_boton.render(nombre, True, (255, 255, 255))
+            pantalla.blit(texto_nombre, (cx - 215, y_fila))
+
+            etiqueta_yo = " (tu)" if id_j == mi_id else ""
+            if etiqueta_yo:
+                texto_yo = self.fuente_pequena.render(etiqueta_yo, True, self.config.COLOR_DORADO)
+                pantalla.blit(texto_yo, (cx - 215 + texto_nombre.get_width() + 4, y_fila + 6))
+
+            esta_listo = bool(listos.get(str(id_j), jugador.get("listo", False)))
+            color_estado = self.config.COLOR_LIBRE if esta_listo else self.config.COLOR_PLATA
+            texto_estado = self.fuente_pequena.render(
+                "Listo" if esta_listo else "Esperando", True, color_estado)
+            pantalla.blit(texto_estado, (cx + 20, y_fila))
+
+            texto_victorias = self.fuente_pequena.render(
+                f"Victorias: {victorias.get(str(id_j), 0)}", True, self.config.COLOR_DORADO)
+            pantalla.blit(texto_victorias, (cx + 100, y_fila))
+
+        todos = snapshot.get("jugadores", [])
+        if len(todos) >= 2 and listos and all(listos.get(str(j.get("id")), False) for j in todos):
+            estado_sala = "¡Todos listos!"
+        elif len(todos) < 2:
+            estado_sala = "Esperando a otro jugador..."
+        else:
+            estado_sala = "Aun faltan jugadores por marcar 'Listo'"
+        texto_estado_sala = self.fuente_pequena.render(estado_sala, True, self.config.COLOR_LIBRE)
+        pantalla.blit(texto_estado_sala, (cx - texto_estado_sala.get_width() // 2, 440))
+
+        x_listo, x_salir, y_btn, btn_ancho, btn_alto = rects_sala(
+            self.config.ANCHO_PANTALLA)
+        hover_listo = mouse_pos and self._dentro_boton(mouse_pos, x_listo, y_btn, btn_ancho, btn_alto)
+        hover_salir = mouse_pos and self._dentro_boton(mouse_pos, x_salir, y_btn, btn_ancho, btn_alto)
+
+        self.dibujar_boton(pantalla, "Listo", x_listo, y_btn, btn_ancho, btn_alto, hover_listo)
+        self.dibujar_boton(pantalla, "Salir", x_salir, y_btn, btn_ancho, btn_alto, hover_salir)
+        if listo:
+            pygame.draw.rect(pantalla, self.config.COLOR_DORADO,
+                             (x_listo, y_btn, btn_ancho, btn_alto), 2, border_radius=12)
+
+        texto_atajos = self.fuente_pequena.render(
+            "R/ESPACIO: Listo   |   ESC: Salir", True, self.config.COLOR_PLATA)
+        pantalla.blit(texto_atajos, (self.config.ANCHO_PANTALLA // 2 - texto_atajos.get_width() // 2, 625))
 
 

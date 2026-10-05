@@ -9,6 +9,7 @@ escudo giratorio, congelamiento, estelas de velocidad y expresión de "la lleva"
 import math
 
 import pygame
+from juego_lleva.fuentes import fuente
 from juego_lleva.core.config import Config
 
 
@@ -40,6 +41,13 @@ class JugadorView:
             "accesorio": "banda",
             "color_accesorio": (90, 210, 120),
         },
+        3: {
+            "pelo": "largo",
+            "color_pelo": (230, 190, 60),
+            "piel": (140, 92, 58),
+            "accesorio": "vincha",
+            "color_accesorio": (230, 120, 220),
+        },
     }
 
     def __init__(self):
@@ -48,7 +56,7 @@ class JugadorView:
         self.tiempo_animacion = 0
         self.fase_caminar = 0
         self.s = self.config.TAMAÑO_JUGADOR / 95.0
-        self._fuente_nombre = pygame.font.SysFont(None, 24)
+        self._fuente_nombre = fuente(24)
 
     def _color_oscuro(self, color):
         """Devuelve una versión oscurecida de un color.
@@ -85,7 +93,7 @@ class JugadorView:
         """
         if getattr(jugador, "es_ia", False):
             return self.ESTILOS[2]
-        return self.ESTILOS[jugador.id % 2]
+        return self.ESTILOS[jugador.id % 4]
 
     def _esta_congelado(self, jugador):
         """Indica si el jugador está bajo el efecto de congelamiento.
@@ -169,7 +177,7 @@ class JugadorView:
         estilo = self._estilo_para(jugador)
         congelado = self._esta_congelado(jugador)
 
-        color = self.config.COLOR_JUGADOR_1 if jugador.id == 0 else self.config.COLOR_JUGADOR_2
+        color = self.config.color_jugador(jugador.id)
         if congelado:
             color = self._tinte_congelado(color)
         if jugador.es_lleva:

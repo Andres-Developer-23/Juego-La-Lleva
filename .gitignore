@@ -78,3 +78,6 @@ web/*.log
 # Datos locales del juego (preferencias y ranking)
 juego_lleva/assets/settings.json
 juego_lleva/assets/ranking.json
+
+# Runtime de la version web (se descarga con web/descargar_runtime.py)
+web/cdn/

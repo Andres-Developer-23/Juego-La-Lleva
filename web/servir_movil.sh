@@ -5,7 +5,7 @@
 
 set -u
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
-PY="$RAIZ/.venv/bin/python"
+PY="$RAIZ/venv/bin/python"
 BIN="$HOME/.local/bin/cloudflared"
 LOG_SRV="$RAIZ/web/servidor.log"
 LOG_TUN="$RAIZ/web/tunel.log"

@@ -1,6 +1,7 @@
 """Módulo de control que gestiona las entradas del teclado."""
 
 import pygame
+from juego_lleva.constantes_entrada import K_a, K_d, K_DOWN, K_LEFT, K_RIGHT, K_s, K_UP, K_w
 
 
 class Controlador:
@@ -9,16 +10,16 @@ class Controlador:
     def __init__(self):
         """Inicializa el controlador con la configuración de teclas para dos jugadores."""
         self.teclas_jugador1 = {
-            'arriba': pygame.K_w,
-            'abajo': pygame.K_s,
-            'izquierda': pygame.K_a,
-            'derecha': pygame.K_d
+            'arriba': K_w,
+            'abajo': K_s,
+            'izquierda': K_a,
+            'derecha': K_d
         }
         self.teclas_jugador2 = {
-            'arriba': pygame.K_UP,
-            'abajo': pygame.K_DOWN,
-            'izquierda': pygame.K_LEFT,
-            'derecha': pygame.K_RIGHT
+            'arriba': K_UP,
+            'abajo': K_DOWN,
+            'izquierda': K_LEFT,
+            'derecha': K_RIGHT
         }
 
     def obtener_teclas_jugador(self, id_jugador):

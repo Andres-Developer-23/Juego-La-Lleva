@@ -10,7 +10,13 @@ class Renderer:
         self.j = juego
 
     def flip(self):
-        """Ejecuta el unico pygame.display.flip() del juego y limita FPS."""
+        """Ejecuta el unico pygame.display.flip() del juego y limita FPS.
+
+        Los avisos (toasts) se pintan aqui mismo, justo antes de presentar el
+        buffer, para que se vean en todas las pantallas sin flip extra.
+        """
+        if self.j.toasts:
+            self.j.interfaz.dibujar_toasts(self.j.pantalla, self.j.toasts)
         pygame.display.flip()
         if not self.j.config.PLATAFORMA_WEB:
             self.j.reloj.tick(self.j.config.FPS)
@@ -47,7 +53,6 @@ class Renderer:
             self.j.pantalla, self.j.tiempo_ronda,
             self.j.puntaje_service.tiempos_lleva, self.j.jugadores,
             self.j.duracion_ronda, self.j.efectos_activos)
-        self.j.interfaz.dibujar_toasts(self.j.pantalla, self.j.toasts)
         self.j.tactil_view.dibujar(self.j.pantalla, self.j.tactil)
 
         if self.j.toque_flash > 0:

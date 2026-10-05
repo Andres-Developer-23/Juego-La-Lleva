@@ -1,6 +1,10 @@
 """Control táctil para jugar desde pantallas táctiles (móviles y tablets)."""
 
 import pygame
+from juego_lleva.constantes_entrada import (
+    K_a, K_d, K_DOWN, K_LEFT, K_RIGHT, K_s, K_UP, K_w,
+    FINGERDOWN, FINGERMOTION, FINGERUP,
+)
 
 
 class ControladorTactil:
@@ -49,15 +53,15 @@ class ControladorTactil:
         Args:
             evento: Evento de pygame (FINGERDOWN, FINGERMOTION o FINGERUP).
         """
-        if evento.type == pygame.FINGERDOWN:
+        if evento.type == FINGERDOWN:
             self.activo = True
             pos = (evento.x * self.ancho, evento.y * self.alto)
             self.dedos[evento.finger_id] = pos
             if self.zona_pausa.collidepoint(pos):
                 self.pausa_pedida = True
-        elif evento.type == pygame.FINGERMOTION:
+        elif evento.type == FINGERMOTION:
             self.dedos[evento.finger_id] = (evento.x * self.ancho, evento.y * self.alto)
-        elif evento.type == pygame.FINGERUP:
+        elif evento.type == FINGERUP:
             self.dedos.pop(evento.finger_id, None)
 
     def teclas_activas(self):
@@ -68,8 +72,8 @@ class ControladorTactil:
         """
         direcciones = ["arriba", "abajo", "izquierda", "derecha"]
         pads = [
-            (self.zonas_j1, [pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d]),
-            (self.zonas_j2, [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]),
+            (self.zonas_j1, [K_w, K_s, K_a, K_d]),
+            (self.zonas_j2, [K_UP, K_DOWN, K_LEFT, K_RIGHT]),
         ]
         activas = []
         for pos in self.dedos.values():

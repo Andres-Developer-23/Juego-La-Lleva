@@ -1,6 +1,7 @@
 """Vista que dibuja las zonas de control táctil sobre la pantalla."""
 
 import pygame
+from juego_lleva.fuentes import fuente
 
 
 class TactilView:
@@ -54,5 +55,5 @@ class TactilView:
     def _fuente(self):
         """Devuelve una fuente pequeña (en caché) para las etiquetas."""
         if self._fuente_cache is None:
-            self._fuente_cache = pygame.font.SysFont(None, 28)
+            self._fuente_cache = fuente(28)
         return self._fuente_cache

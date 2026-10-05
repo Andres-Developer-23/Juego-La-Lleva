@@ -108,9 +108,13 @@ implementado:
   `browserfs.min.js` (404) y su cabecera de seguridad (COEP) bloqueaba el
   cargador. Se versionó el recurso en `web/vendor/`, el servidor ya no envía
   COEP y el wheel de pygame-ce para wasm se sirve localmente en `web/cdn/`.
+  Hoy todo el runtime (intérprete incluido) se publica local con
+  `web/descargar_runtime.py` y la web carga sin internet: si el CDN público
+  cae o está bloqueado, antes la página quedaba en negro y ahora muestra un
+  aviso con el archivo que falló.
 - **Automatización**: `web/compilar_web.py` compila y completa los recursos
   faltantes; `web/probar_web.py` verifica la web compilada con un navegador
-  headless (Playwright + Firefox).
+  headless (Playwright + Chromium, con modo `--offline`).
 
 ### Rendimiento en navegador
 
@@ -129,7 +133,8 @@ puede jugar desde el navegador del celular sin instalar nada.
 
 Compilar (genera `juego_lleva/build/web/`; pygbag 0.9.3 deja el build "colgado"
 tras escribir los archivos, por eso el script espera a que aparezcan y completa
-los recursos que su CDN ya no sirve):
+los recursos locales. La primera vez descarga el runtime de Python para web
+—unos 22 MB— a `web/cdn/`, que queda ignorado por git):
 
 ```bash
 .venv/bin/pip install -r requirements-dev.txt    # pygbag + playwright (test web)
@@ -149,19 +154,22 @@ Para exponerlo a internet y jugar desde el celular fuera de la red local
 bash web/servir_movil.sh
 ```
 
-Verificar automáticamente la web compilada (abre Firefox headless, hace clic y
-guarda una captura):
+Verificar automáticamente la web compilada (abre Chromium headless, hace clic y
+guarda una captura). Con `--offline` lanza el navegador sin resolver hosts
+externos, así que falla si el build vuelve a depender de internet:
 
 ```bash
 .venv/bin/python web/probar_web.py http://localhost:8000/ 30 /tmp/captura.png
+.venv/bin/python web/probar_web.py --offline http://localhost:8000/ 30
 ```
 
 El servidor muestra la IP local para abrir el juego desde el celular
 (`http://<ip-pc>:8000/`). Notas:
 
-- Si la web carga desde `localhost:8*`, pygbag descarga las librerías del propio
-  servidor (se sirven ya en `build/web/cdn/`); desde una IP normal las baja de su
-  CDN, así que el celular necesita internet.
+- El build es autosuficiente: el runtime (intérprete, xterm, manifiesto y wheel
+  de pygame-ce) se sirve desde `build/web/cdn/`, así que el celular y una URL
+  pública no necesitan internet. Si algo falta, la página muestra un aviso con
+  el archivo que falló en vez de quedar en negro.
 - En pantalla táctil aparecen cruces de control para J1 (izquierda) y J2
   (derecha) más un botón de pausa. En el escritorio funcionan los controles
   normales.
@@ -233,6 +241,57 @@ También se puede iniciar cada componente como módulo:
 python -m juego_lleva.red.servidor --puerto 5555
 ```
 
+## Multijugador en línea (cada jugador desde su dispositivo)
+
+Además del multijugador local y del prototipo por sockets, el modo **En Línea**
+sirve la partida desde un servidor web: **2 a 4 jugadores** se unen desde el
+navegador del celular o de la PC, sin instalar nada. La simulación es
+autoritativa en el servidor (hilo propio a 30 Hz en `juego_lleva/red/sala.py`);
+los clientes solo envían su entrada y leen el snapshot.
+
+```bash
+# 1. Compilar una vez la versión web
+.venv/bin/python web/compilar_web.py
+
+# 2. Levantar el servidor (sirve la web y la API de la sala)
+.venv/bin/python servidor_web.py juego_lleva/build/web --max-jugadores 3
+
+# 3. Abrir http://<ip-local>:8000/ en cada dispositivo y elegir "En Linea"
+```
+
+`servidor_web.py` acepta `--puerto` (por defecto 8000) y `--max-jugadores
+2|3|4`. En la pantalla de sala cada jugador escribe su nombre y marca **Listo**
+(R/ESPACIO); cuando todos están listos empieza `countdown → jugando → fin` y
+luego la siguiente ronda. ESC o el botón **Salir** abandonan la sala.
+
+### API de la sala (`/api/sala/*`)
+
+Los cuerpos van en JSON (también se acepta `application/x-www-form-urlencoded`
+como defensa):
+
+| Ruta | Cuerpo | Respuesta |
+|------|--------|-----------|
+| `POST /api/sala/unirse` | `{"nombre":"Ana"}` | `{"token","id","fase","max_jugadores",…}` |
+| `POST /api/sala/sync` | `{"token":"…","listo":true,"entrada":{"arriba":true,…}}` | snapshot completo (fase, jugadores, victorias, eventos) |
+| `POST /api/sala/salir` | `{"token":"…"}` | `{"ok":true}` |
+| `GET /api/sala` | — | estado público: fase, jugadores, victorias |
+
+Errores: `400` cuerpo ilegible, `401` token desconocido, `409` sala llena o
+partida en curso, `413` cuerpo mayor de 16 KB.
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/api/sala/unirse \
+  -H 'Content-Type: application/json' -d '{"nombre":"Ana"}' \
+  | python -c 'import sys, json; print(json.load(sys.stdin)["token"])')
+
+curl -s http://localhost:8000/api/sala
+curl -s -X POST http://localhost:8000/api/sala/sync \
+  -H 'Content-Type: application/json' \
+  -d "{\"token\":\"$TOKEN\",\"listo\":true,\"entrada\":{\"arriba\":false,\"abajo\":false,\"izquierda\":false,\"derecha\":false}}"
+curl -s -X POST http://localhost:8000/api/sala/salir \
+  -H 'Content-Type: application/json' -d "{\"token\":\"$TOKEN\"}"
+```
+
 ## Cómo Jugar
 
 1. Elegir modo (Un Jugador contra la IA o Multijugador local)
@@ -302,10 +361,11 @@ Juego-La-Lleva/
 ├── cliente.py           # Launcher del cliente de red (pygame + red)
 ├── servidor.py          # Launcher del servidor de red
 ├── web/                 # Soporte para la versión navegador
-│   ├── vendor/          # browserfs.min.js versionado (la CDN ya no lo sirve)
-│   ├── cdn/             # Wheel wasm de pygame-ce servido localmente
+│   ├── vendor/          # browserfs.min.js y semillas del runtime (la CDN dio 404)
+│   ├── cdn/             # Runtime completo servido localmente (gitignore, ~22 MB)
 │   ├── compilar_web.py  # Compila con pygbag y completa recursos
-│   └── probar_web.py    # Verificación con navegador headless
+│   ├── descargar_runtime.py  # Descarga el runtime a web/cdn/ (una vez)
+│   └── probar_web.py    # Verificación con navegador headless (--offline)
 ├── servidor_web.py      # Servidor de la versión compilada (sin COEP)
 ├── requirements.txt     # Dependencias de ejecución (pygame-ce)
 └── requirements-dev.txt # Dependencias de desarrollo/web (pygbag, playwright)
@@ -319,14 +379,17 @@ Ejecutar la suite de pruebas desde la raíz del proyecto:
 python -m unittest discover -s juego_lleva/tests -t . -p "test_*.py" -v
 ```
 
-Las **111 pruebas** cubren: puntajes, reglas de la ronda (regla clásica),
+Las **198 pruebas** cubren: puntajes, reglas de la ronda (regla clásica),
 ranking con persistencia, colisiones y deslizamiento contra cajas, rebote a
 alta velocidad, toque por alcance, física del jugador (inercia, diagonal
 normalizada, tropiezo) y de la IA (persecución/huida, reacción), power-ups,
 configuración persistente, síntesis de audio, control táctil para la versión
 web, el multijugador en red (protocolo de mensajes e integración
-cliente-servidor) y las vistas gráficas (estilos de personaje, estados,
-cacheo de superficies y UI a 720p).
+cliente-servidor), las **vistas gráficas** (estilos de personaje, estados,
+cacheo de superficies y UI a 720p) y el **modo en línea** (sala y fases,
+snapshot HTTP con `ThreadingHTTPServer`, bots de extremo a extremo,
+controlador con predicción/interpolación, validación de la API y geometría
+compartida de botones).
 
 ### Regenerar fondos
 

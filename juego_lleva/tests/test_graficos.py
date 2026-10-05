@@ -183,6 +183,7 @@ class TestCongeladoEnModelo(unittest.TestCase):
         self.juego = Juego(Config())
         self.dir_tmp = tempfile.TemporaryDirectory()
         self.juego.configuracion.ruta = os.path.join(self.dir_tmp.name, "settings.json")
+        self.juego.ranking_service.ruta = os.path.join(self.dir_tmp.name, "ranking.json")
 
     def tearDown(self):
         self.dir_tmp.cleanup()

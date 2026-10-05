@@ -1,6 +1,7 @@
 """Controlador que maneja las pantallas de pausa y fin de ronda."""
 
 import pygame
+from juego_lleva.constantes_entrada import K_p, K_ESCAPE, K_q, K_RETURN, K_r, KEYDOWN
 
 from juego_lleva.core.estado import EstadoJuego
 
@@ -17,11 +18,11 @@ class ControladorPantallas:
             self.j.estado = EstadoJuego.JUGANDO
             return
         for evento in self.j.eventos_pendientes:
-            if evento.type == pygame.KEYDOWN:
-                if evento.key in (pygame.K_p, pygame.K_ESCAPE):
+            if evento.type == KEYDOWN:
+                if evento.key in (K_p, K_ESCAPE):
                     self.j.estado = EstadoJuego.JUGANDO
                     return
-                if evento.key == pygame.K_q:
+                if evento.key == K_q:
                     self.j._volver_al_menu()
                     return
 
@@ -47,10 +48,10 @@ class ControladorPantallas:
             return
 
         for evento in self.j.eventos_pendientes:
-            if evento.type == pygame.KEYDOWN and evento.key in (pygame.K_RETURN, pygame.K_r):
+            if evento.type == KEYDOWN and evento.key in (K_RETURN, K_r):
                 self.j._iniciar_partida()
                 return
-            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+            if evento.type == KEYDOWN and evento.key == K_ESCAPE:
                 self.j._volver_al_menu()
                 return
 

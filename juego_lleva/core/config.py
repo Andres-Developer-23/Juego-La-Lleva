@@ -42,8 +42,24 @@ class Config:
     COLOR_FONDO = (25, 25, 45)
     COLOR_JUGADOR_1 = (0, 180, 255)
     COLOR_JUGADOR_2 = (255, 100, 50)
+    COLOR_JUGADOR_3 = (170, 80, 220)
+    COLOR_JUGADOR_4 = (110, 230, 60)
     COLOR_LLEVA = (255, 50, 50)
     COLOR_LIBRE = (0, 220, 100)
+
+    @classmethod
+    def color_jugador(cls, id_jugador):
+        """Devuelve el color del jugador según su id (4 esquemas en rotación).
+
+        Args:
+            id_jugador (int): Identificador del jugador.
+
+        Returns:
+            tuple: Color RGB del jugador.
+        """
+        esquemas = (cls.COLOR_JUGADOR_1, cls.COLOR_JUGADOR_2,
+                    cls.COLOR_JUGADOR_3, cls.COLOR_JUGADOR_4)
+        return esquemas[id_jugador % len(esquemas)]
 
     # Acentos
     COLOR_DORADO = (255, 215, 0)
@@ -61,7 +77,7 @@ class Config:
     COLOR_BOTON = (50, 50, 80)
     COLOR_BOTON_HOVER = (70, 70, 110)
     COLOR_BORDE = (100, 100, 140)
-    BOTONES_MENU = 6
+    BOTONES_MENU = 7
 
     # Assets
     ASSETS_DIR = os.path.join(_BASE_DIR, "assets")

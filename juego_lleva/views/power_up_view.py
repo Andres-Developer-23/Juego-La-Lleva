@@ -3,6 +3,7 @@
 import math
 
 import pygame
+from juego_lleva.fuentes import fuente
 
 from juego_lleva.core.config import Config
 
@@ -24,7 +25,7 @@ class PowerUpView:
     def __init__(self):
         """Inicializa la vista de power-ups."""
         self.config = Config()
-        self.fuente = pygame.font.SysFont(None, 30)
+        self.fuente = fuente(30)
         self._halos = {}
 
     def _superficie_halo(self, color, radio, alpha):

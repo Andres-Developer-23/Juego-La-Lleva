@@ -46,7 +46,7 @@ class ParticulaService:
             return None
 
         color = config.COLOR_LLEVA if jugador.es_lleva else (
-            config.COLOR_JUGADOR_1 if jugador.id == 0 else config.COLOR_JUGADOR_2
+            config.color_jugador(jugador.id)
         )
         if potenciado:
             color = (255, 235, 120)

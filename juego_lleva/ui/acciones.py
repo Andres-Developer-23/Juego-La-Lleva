@@ -2,6 +2,29 @@
 
 from juego_lleva.core.config import Config
 
+ALTO_BOTON_MENU = 44
+ALTO_BOTON_SALA = 50
+
+
+def rects_sala(ancho_pantalla):
+    """Geometría de los botones de la sala, compartida con ``dibujar_sala``.
+
+    La pantalla de sala usa coordenadas absolutas (su texto tiene tamaño fijo
+    y el panel no escala), así dibujo e hitbox salen del mismo sitio.
+
+    Args:
+        ancho_pantalla (int): Ancho lógico de la pantalla.
+
+    Returns:
+        tuple: (x_listo, x_salir, y, ancho, alto).
+    """
+    ancho = 200
+    alto = ALTO_BOTON_SALA
+    y = 560
+    x_listo = ancho_pantalla // 2 - ancho - 20
+    x_salir = ancho_pantalla // 2 + 20
+    return x_listo, x_salir, y, ancho, alto
+
 
 class AccionesUI:
     """Detecta qué acción seleccionó el usuario según mouse y click."""
@@ -10,8 +33,12 @@ class AccionesUI:
         self.config = Config()
 
     def _dentro_boton(self, pos, x, y, ancho, alto):
-        """Verifica si una posición está dentro de un rectángulo de botón."""
-        return x <= pos[0] <= x + ancho and y <= pos[1] <= y + alto
+        """Verifica si una posición está dentro de un rectángulo de botón.
+
+        El borde derecho e inferior quedan fuera para que dos botones
+        contiguos no compartan la misma fila/columna de píxeles.
+        """
+        return x <= pos[0] < x + ancho and y <= pos[1] < y + alto
 
     def detectar_menu(self, mouse_pos, click, botones_menu, escala_ui):
         """Obtiene la acción del menú según la posición del mouse y el click.
@@ -28,7 +55,7 @@ class AccionesUI:
         if not click:
             return None
         ancho = int(280 * escala_ui)
-        alto = int(48 * escala_ui)
+        alto = int(ALTO_BOTON_MENU * escala_ui)
         x = self.config.ANCHO_PANTALLA // 2 - ancho // 2
         for _texto, accion, y in botones_menu:
             if self._dentro_boton(mouse_pos, x, int(y * escala_ui), ancho, alto):
@@ -97,6 +124,26 @@ class AccionesUI:
                 return ("cambiar", clave, -1)
             if self._dentro_boton(mouse_pos, cx + 50, y + 15, 40, 40):
                 return ("cambiar", clave, 1)
+        return None
+
+    def detectar_sala(self, mouse_pos, click):
+        """Obtiene la acción de la sala de espera según el mouse.
+
+        Args:
+            mouse_pos (tuple): Posición del mouse.
+            click (bool): True si se hizo click.
+
+        Returns:
+            str: Acción seleccionada ("listo", "salir") o None.
+        """
+        if not click:
+            return None
+        x_listo, x_salir, y_btn, ancho, alto = rects_sala(
+            self.config.ANCHO_PANTALLA)
+        if self._dentro_boton(mouse_pos, x_listo, y_btn, ancho, alto):
+            return "listo"
+        if self._dentro_boton(mouse_pos, x_salir, y_btn, ancho, alto):
+            return "salir"
         return None
 
     def detectar_ayuda(self, mouse_pos, click, ancho_pantalla, alto_pantalla):

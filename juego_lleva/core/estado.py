@@ -20,3 +20,4 @@ class EstadoJuego(str, Enum):
     COUNTDOWN = "countdown"
     RANKING = "ranking"
     OPCIONES = "opciones"
+    EN_LINEA = "en_linea"

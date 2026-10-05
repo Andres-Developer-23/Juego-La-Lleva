@@ -3,6 +3,7 @@
 import random
 
 import pygame
+from juego_lleva.constantes_entrada import K_ESCAPE, K_p, KEYDOWN
 
 from juego_lleva.core.estado import EstadoJuego
 
@@ -36,7 +37,7 @@ class ControladorPartida:
             self.j.estado = EstadoJuego.PAUSA
             return True
         for evento in self.j.eventos_pendientes:
-            if evento.type == pygame.KEYDOWN and evento.key in (pygame.K_ESCAPE, pygame.K_p):
+            if evento.type == KEYDOWN and evento.key in (K_ESCAPE, K_p):
                 self.j.estado = EstadoJuego.PAUSA
                 return True
         return False
